@@ -1,0 +1,37 @@
+/* ===== 기본 리셋 & 배경 ===== */
+html, body, #root {
+  height: 100%;
+}
+body {
+  margin: 0;
+  background: #f5f5f5; /* 앱 바깥 배경 */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-family: "Pretendard", system-ui, -apple-system, Segoe UI, Roboto, Noto Sans, "Apple SD Gothic Neo", "맑은 고딕", sans-serif;
+}
+
+/* ===== 공통 프레임 ===== */
+/* 앱 전체를 중앙에 고정시키는 래퍼 */
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+}
+
+/* 실제 앱 화면(모바일 390px) */
+.app-frame {
+  position: relative;
+  width: 100%;
+  max-width: 390px;
+  min-height: 100vh;
+  background: #fafafa;
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.04);
+  display: flex;
+  flex-direction: column;
+}
+
+/* 페이지 본문이 하단 네비게이션에 가리지 않도록 기본 여백 권장 */
+.page-main {
+  padding-bottom: 108px; /* 네비 높이(72) + 여유 */
+  box-sizing: border-box;
+}

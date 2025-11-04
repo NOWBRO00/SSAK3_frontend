@@ -1,0 +1,126 @@
+/* ========= 프레임 ========= */
+.app-shell {
+  min-height: 100vh;
+  background: #f5f5f5;
+  display: flex;
+  justify-content: center;
+}
+.app-frame {
+  width: 100%;
+  max-width: 390px;
+  min-height: 100vh;
+  background: #fafafa;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.04);
+}
+
+/* ========= 상단바 ========= */
+.m-topbar {
+  position: sticky;
+  top: 0;
+  height: 56px;
+  background: #fff;
+  border-bottom: 1px solid #ededed;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  z-index: 5;
+}
+.topbar-logo { height: 22px; width: auto; }
+
+/* ========= 본문 ========= */
+.welcome {
+  flex: 1;
+  min-height: calc(100vh - 56px);
+  padding: 70px 18px 48px;   /* ✅ 전체를 아래로 내리기 위해 padding-top ↑ */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-sizing: border-box;
+}
+
+/* ========= 히어로 ========= */
+.hero {
+  position: relative;
+  width: 100%;
+  display: grid;
+  place-items: center;
+  margin-top: 30px;          /* ✅ 추가 여백 (전체 하단 이동 보완) */
+  margin-bottom: 20px;
+}
+
+/* 환영합니다 텍스트 */
+.hero-title {
+  position: absolute;
+  top: -80px;                
+  font-size: 40px;
+  font-weight: 800;
+  color: #2b0c0b;
+  text-align: center;
+  z-index: 2;
+}
+
+/* 축포 이미지 */
+.hero-bg {
+  width: 95%;                /* 큼 */
+  transform: translate(-8%, -2%); /* 왼쪽 + 살짝 아래로 */
+  height: auto;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+/* 곰돌이 */
+.hero-bear {
+  position: absolute;
+  bottom: -3%;               /* ✅ 조금 더 아래로 */
+  width: 48%;
+  height: auto;
+  pointer-events: none;
+}
+
+/* 그림자 */
+.hero-shadow {
+  content: "";
+  position: absolute;
+  bottom: -4%;
+  width: 42%;
+  height: 12px;
+  background: rgba(0,0,0,0.12);
+  filter: blur(6px);
+  border-radius: 999px;
+}
+
+/* ========= 텍스트 ========= */
+.desc {
+  margin-top: 40px;          /* ✅ 곰돌이와 간격 확대 */
+  text-align: center;
+  font-size: 15px;
+  color: #6f6f6f;
+  line-height: 1.55;
+}
+.desc strong { color: #2b0c0b; }
+
+/* ========= 버튼 ========= */
+.primary-btn {
+  margin-top: 28px;          /* ✅ 버튼도 조금 더 아래로 */
+  width: 100%;
+  height: 50px;
+  border: none;
+  border-radius: 12px;
+  background: #2b0c0b;
+  color: #fff;
+  font-size: 17px;
+  font-weight: 700;
+  box-shadow: 0 8px 16px rgba(0,0,0,0.12);
+  cursor: pointer;
+}
+.primary-btn:active {
+  transform: translateY(1px);
+}
+
+/* 세로 짧은 화면 대응 */
+@media (max-height: 700px) {
+  .welcome { padding-top: 50px; }
+  .hero-title { top: -20px; }
+}

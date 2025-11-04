@@ -1,0 +1,53 @@
+/* 하단 고정 네비게이션바 (앱 프레임 폭에 맞춤) */
+.bottom-nav {
+  position: fixed;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 390px;
+  height: 72px;
+  background: #ffffff;
+  border-top: 1px solid #ededed;
+  z-index: 1000;
+
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: 0 8px;
+  box-sizing: border-box;
+}
+
+.nav-item {
+  flex: 1;
+  text-decoration: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.nav-icon {
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+}
+
+.nav-label {
+  font-size: 11.5px;
+  color: #a19191;
+  line-height: 1;
+  font-family: "Pretendard", system-ui, -apple-system, sans-serif;
+}
+
+.nav-item.active .nav-label {
+  color: #f72623;
+  font-weight: 600;
+}
+
+.nav-item:active .nav-icon { transform: scale(0.96); }
+
+@media (max-height: 700px) {
+  .bottom-nav { height: 68px; }
+}

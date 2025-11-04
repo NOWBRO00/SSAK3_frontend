@@ -1,0 +1,196 @@
+/* ===== 바깥 배경 + 모바일 프레임 ===== */
+.app-shell {
+  min-height: 100vh;
+  background: #f5f5f5;
+  display: flex;
+  justify-content: center;
+}
+.app-frame {
+  width: 100%;
+  max-width: 390px;
+  min-height: 100vh;
+  background: #fafafa;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.04);
+}
+
+/* ===== 상단바 ===== */
+.m-topbar {
+  position: sticky;
+  top: 0;
+  height: 56px;
+  background: #fff;
+  border-bottom: 1px solid #ededed;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  z-index: 5;
+}
+.topbar-logo { height: 22px; width: auto; }
+
+/* ===== 본문: 카드 정중앙 (시각 중심 보정으로 살짝 위로) ===== */
+.m-main {
+  flex: 1;
+  display: flex;
+  align-items: center;          /* 세로 중앙 */
+  justify-content: center;      /* 가로 중앙 */
+  min-height: calc(100vh - 56px);
+  padding: 6px 16px 12px;       /* ⬆︎ 상단 패딩 줄여서 카드 시각적으로 위로 */
+  box-sizing: border-box;
+}
+
+/* ===== 카드: 유동 높이 + 내용 중앙 덩어리 ===== */
+.m-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;          /* 내용 가로 중앙 */
+  justify-content: center;      /* 내용 세로 중앙 */
+  width: 100%;
+  max-width: 360px;
+  min-height: clamp(420px, 48vh, 460px);  /* 과하지 않게 유동 */
+  background: #fff;
+  border: 1px solid #dadada;
+  border-radius: 12px;
+  box-shadow: 0 10px 18px rgba(0,0,0,0.14);
+  padding: 14px 16px;           /* ⬅︎ 카드 안 패딩 축소 */
+}
+
+/* 카드 내부 내용(한 덩어리) */
+.card-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  gap: 6px;                     /* 요소 간 간격 최소화 */
+}
+
+/* 닫기(X) */
+.m-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 22px;
+  height: 22px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+.m-close::before,
+.m-close::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 14px;
+  height: 1.8px;
+  background: #c8c0b8;
+  transform-origin: center;
+}
+.m-close::before { transform: translate(-50%, -50%) rotate(45deg); }
+.m-close::after  { transform: translate(-50%, -50%) rotate(-45deg); }
+
+/* 브랜드 로고 (로고 밑만 살짝 띄우기) */
+.brand-hero {
+  height: 24px;
+  width: auto;
+  margin-bottom: 4px;           /* ⬅︎ 숨 쉴 공간만 살짝 */
+}
+
+/* 타이포 */
+.m-headline {
+  margin: 0;
+  text-align: center;
+  font-weight: 700;
+  font-size: 20px;
+  line-height: 1.35;
+  color: #111;
+}
+.m-accent { color: #f72623; }
+.m-sub {
+  margin: 0 0 6px;              /* 타이틀-설명 간격 타이트 */
+  text-align: center;
+  font-size: 13px;
+  color: #888;
+}
+
+/* 구분선: 가운데 블록과 살짝만 떨어뜨림 */
+.m-divider {
+  width: 100%;
+  border: none;
+  border-top: 1px solid #eee;
+  margin: 6px 0 4px;            /* 최소 여백 */
+}
+
+/* 말풍선: 작고 타이트 (우하단 꼬리) */
+.m-bubble {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 12px;
+  min-height: 28px;
+  border-radius: 999px;
+  background: #fff;
+  border: 1px solid #e9e9e9;
+  box-shadow: 0 1.5px 3px rgba(0,0,0,0.06);
+  font-size: 11.5px;
+  color: #6d6d6d;
+  margin-bottom: 4px;           /* 버튼과 간격 최소화 */
+}
+.m-bubble::after {
+  content: "";
+  position: absolute;
+  right: 20px;
+  bottom: -5px;
+  width: 8px;
+  height: 8px;
+  background: #fff;
+  border-left: 1px solid #e9e9e9;
+  border-bottom: 1px solid #e9e9e9;
+  transform: rotate(45deg);
+}
+
+/* 카카오 버튼 */
+.kakao-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: 44px;
+  border: none;
+  border-radius: 999px;
+  background: #fee500;
+  box-shadow: 0 2px 0 #e0c900, 0 8px 14px rgba(0,0,0,0.12);
+  cursor: pointer;
+}
+.kakao-icon {
+  width: 16px;
+  height: 16px;
+  background: #181600;
+  border-radius: 50%;
+  position: relative;
+}
+.kakao-icon::after {
+  content: "";
+  position: absolute;
+  bottom: -3px;
+  left: 5.5px;
+  width: 6px;
+  height: 6px;
+  background: #181600;
+  transform: rotate(45deg);
+}
+.kakao-text {
+  font-weight: 700;
+  font-size: 14px;
+  color: #1b1b1b;
+}
+
+/* 세로가 아주 짧을 때: 살짝 위로 올려 스크롤 여지 확보 */
+@media (max-height: 700px) {
+  .m-main { align-items: flex-start; padding-top: 10px; }
+  .m-card { min-height: 420px; }
+}
