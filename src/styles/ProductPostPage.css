@@ -1,4 +1,4 @@
-/* ===== 헤더/프레임은 이전과 동일 ===== */
+/* ===== 헤더 / 프레임 ===== */
 .post-header {
   position: sticky;
   top: 0;
@@ -13,15 +13,25 @@
   margin: 0 auto;
   z-index: 20;
 }
+
 .back-btn {
   margin-left: 8px;
-  width: 44px; height: 44px;
-  border: 0; background: transparent; border-radius: 10px;
-  font-size: 24px; color: #2b0c0b; cursor: pointer;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  background: transparent;
+  border-radius: 10px;
+  font-size: 24px;
+  color: #2b0c0b;
+  cursor: pointer;
 }
+
 .post-header h1 {
-  margin: 0; text-align: center;
-  font-size: 16px; font-weight: 700; color: #2b0c0b;
+  margin: 0;
+  text-align: center;
+  font-size: 16px;
+  font-weight: 700;
+  color: #2b0c0b;
 }
 
 .post-main {
@@ -37,14 +47,34 @@
 }
 
 /* ===== 섹션 타이틀 ===== */
-.section-title { font-size: 16px; font-weight: 700; color: #2b0c0b; }
-.limit-text { margin-left: 6px; font-size: 12px; color: #7b6e6e; }
-.limit-text b { color: #f72623; }
+.section-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #2b0c0b;
+}
+
+.limit-text {
+  margin-left: 6px;
+  font-size: 12px;
+  color: #7b6e6e;
+}
+
+.limit-text b {
+  color: #f72623;
+}
 
 /* ===== 이미지 업로드 (가로 스크롤) ===== */
-.image-upload-section { display: flex; flex-direction: column; gap: 10px; }
+.image-upload-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
 
-.image-carousel { display: flex; flex-direction: column; gap: 8px; }
+.image-carousel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
 
 .image-strip {
   display: flex;
@@ -53,65 +83,109 @@
   scroll-snap-type: x mandatory;
   padding-bottom: 2px;
 }
-.image-strip::-webkit-scrollbar { height: 6px; }
-.image-strip::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.08); border-radius: 999px; }
+
+.image-strip::-webkit-scrollbar {
+  height: 6px;
+}
+
+.image-strip::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.08);
+  border-radius: 999px;
+}
 
 /* 업로드 플레이스홀더 */
 .upload-thumb {
   display: inline-grid;
   grid-template-rows: 1fr auto;
   place-items: center;
-  width: 74px; height: 74px;
+  width: 74px;
+  height: 74px;
   border-radius: 12px;
   background: #f4efed;
   position: relative;
-  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.06);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.06);
   cursor: pointer;
   scroll-snap-align: start;
 }
+
 .upload-thumb img {
-  width: 38px; height: 38px; object-fit: contain; opacity: .8;
+  width: 38px;
+  height: 38px;
+  object-fit: contain;
+  opacity: 0.8;
   margin-top: 6px;
 }
+
 .upload-thumb .upload-count {
   margin-bottom: 6px;
-  font-size: 13px; color: #9a8e88;
+  font-size: 13px;
+  color: #9a8e88;
 }
 
 /* 업로드 썸네일 */
 .image-thumb {
   position: relative;
-  width: 74px; height: 74px;
-  border-radius: 12px; overflow: hidden;
-  background: #fff; scroll-snap-align: start;
-  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.06);
+  width: 74px;
+  height: 74px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+  scroll-snap-align: start;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.06);
 }
-.image-thumb img { width: 100%; height: 100%; object-fit: cover; }
+
+.image-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
 
 /* 좌상단 순번 배지 */
 .thumb-order {
   position: absolute;
-  left: 4px; top: 4px;
-  min-width: 18px; height: 18px;
+  left: 4px;
+  top: 4px;
+  min-width: 18px;
+  height: 18px;
   padding: 0 5px;
   border-radius: 999px;
   background: #ffffffd9;
   color: #2b0c0b;
-  font-size: 12px; font-weight: 700;
-  display: inline-flex; align-items: center; justify-content: center;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.18);
+  font-size: 12px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
 }
 
 .image-thumb .remove-btn {
-  position: absolute; top: 4px; right: 4px;
-  width: 22px; height: 22px; border: 0; border-radius: 50%;
-  background: #2b0c0b; color: #fff; font-size: 14px; line-height: 22px;
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 22px;
+  height: 22px;
+  border: 0;
+  border-radius: 50%;
+  background: #2b0c0b;
+  color: #fff;
+  font-size: 14px;
+  line-height: 22px;
   cursor: pointer;
 }
 
 /* ===== 입력 공통 ===== */
-.input-section { display: flex; flex-direction: column; gap: 8px; }
-.input-section > label { font-size: 16px; font-weight: 700; color: #2b0c0b; }
+.input-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.input-section > label {
+  font-size: 16px;
+  font-weight: 700;
+  color: #2b0c0b;
+}
 
 .input-section input {
   height: 36px;
@@ -119,30 +193,89 @@
   border: 1px solid #7b6e6e;
   background: #fff;
   padding: 0 10px;
-  font-size: 13px; color: #2b0c0b; outline: none;
+  font-size: 13px;
+  color: #2b0c0b;
+  outline: none;
 }
-.input-section input::placeholder { color: #2b0c0b66; }
 
-/* 카테고리: 화살표를 글자 오른쪽 안쪽으로 */
-.select-wrap { position: relative; display: inline-block; }
+.input-section input::placeholder {
+  color: #2b0c0b66;
+}
+
+/* ===== 상품현황 드롭다운 ===== */
+.status-select-wrap {
+  position: relative;
+  display: inline-block;
+}
+
+.status-select-wrap select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  height: 32px;
+  min-width: 110px;
+  border-radius: 999px;
+  border: 1px solid #7b6e6e;
+  background: #fff;
+  padding: 0 28px 0 14px;
+  font-size: 13px;
+  color: #2b0c0b;
+  outline: none;
+}
+
+.status-select-wrap .status-chevron {
+  position: absolute;
+  left: 80px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 18px;
+  color: #7b6e6e;
+  pointer-events: none;
+}
+
+/* ===== 카테고리 드롭다운 ===== */
+.select-wrap {
+  position: relative;
+  display: inline-block;
+}
+
 .select-wrap select {
-  appearance: none; -webkit-appearance: none; -moz-appearance: none;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
   height: 36px;
-  min-width: 140px; /* 조금 더 컴팩트 */
+  min-width: 140px;
   border-radius: 16px;
   border: 1px solid #7b6e6e;
   background: #fff;
-  padding: 0 18px 0 18px; /* 오른쪽 패딩을 줄여 화살표가 텍스트 가까이 */
-  font-size: 13px; color: #2b0c0b; outline: none;
+  padding: 0 28px 0 18px; /* 오른쪽 여백: 화살표 공간 */
+  font-size: 13px;
+  color: #2b0c0b;
+  outline: none;
 }
+
 .select-wrap .chevron {
-  position: absolute; right: 229px; top: 47%; transform: translateY(-50%);
-  font-size: 30px; color: #7b6e6e; pointer-events: none;
+  position: absolute;
+  left: 115px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 18px;
+  color: #7b6e6e;
+  pointer-events: none;
 }
 
 /* ===== 상세 내용 ===== */
-.detail-section { display: flex; flex-direction: column; gap: 10px; }
-.detail-section > label { font-size: 16px; font-weight: 700; color: #2b0c0b; }
+.detail-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.detail-section > label {
+  font-size: 16px;
+  font-weight: 700;
+  color: #2b0c0b;
+}
 
 .textarea-wrapper {
   border: 1px solid #7b6e6e;
@@ -150,27 +283,40 @@
   background: #fff;
   padding: 10px;
 }
+
 .textarea-wrapper textarea {
   width: 100%;
   min-height: 140px;
-  border: 0; outline: none; resize: vertical;
-  font-size: 13px; color: #2b0c0b;
-  text-align: left; line-height: 1.6;
+  border: 0;
+  outline: none;
+  resize: vertical;
+  font-size: 13px;
+  color: #2b0c0b;
+  text-align: left;
+  line-height: 1.6;
 }
-.textarea-wrapper textarea::placeholder { color: #7b6e6e; }
+
+.textarea-wrapper textarea::placeholder {
+  color: #7b6e6e;
+}
 
 /* ===== 등록 버튼 ===== */
 .submit-btn {
   width: 100%;
   height: 52px;
-  border: 0; border-radius: 15px;
-  background: #2b0c0b; color: #fff;
-  font-size: 16px; font-weight: 700;
-  box-shadow: 0 8px 16px rgba(0,0,0,0.12);
+  border: 0;
+  border-radius: 15px;
+  background: #2b0c0b;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
   cursor: pointer;
 }
 
 /* 작은 화면 보정 */
 @media (max-height: 700px) {
-  .post-main { padding-bottom: 120px; }
+  .post-main {
+    padding-bottom: 120px;
+  }
 }

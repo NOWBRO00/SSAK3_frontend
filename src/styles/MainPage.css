@@ -1,0 +1,258 @@
+/* 바깥 래퍼 */
+.home-shell {
+  background: #fafafa;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+}
+
+.home-frame {
+  width: 100%;
+  max-width: 390px;
+  min-height: 100vh;
+  padding-bottom: 84px; /* BottomNav 여유 */
+}
+
+/* 상단바 */
+.home-topbar {
+  height: 56px;
+  background: #ffffff;
+  border-bottom: 1px solid #ededed;
+  display: grid;
+  grid-template-columns: 56px 1fr 56px;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.home-top-btn {
+  border: none;
+  background: transparent;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+}
+
+.top-icon {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+}
+
+.home-logo {
+  justify-self: center;
+  height: 20px;
+}
+
+/* 배너 - 이미지 크게, 텍스트 옆에 */
+.home-banner {
+  display: flex;
+  align-items: center;
+  padding: 14px 16px 10px;
+  background: #f6f3f1;
+}
+
+.home-banner-img {
+  width: 70%;
+  max-width: 200px;
+  height: auto;
+  object-fit: cover;
+}
+
+.home-banner-text {
+  margin-left: 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  color: #442523;
+  font-family: "Pretendard-Regular", Helvetica, Arial, sans-serif;
+}
+
+.banner-line1 {
+  font-size: 13px;
+  margin-bottom: 2px;
+}
+
+.banner-line2 {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+
+.banner-line3 {
+  font-size: 13px;
+}
+
+/* 카테고리 */
+.home-category-section {
+  padding: 14px 16px 8px;
+  background: #fafafa;
+}
+
+.home-category-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.home-category-card {
+  border: none;
+  background: transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 74px;
+}
+
+.home-category-icon-wrap {
+  width: 74px;
+  height: 74px;
+  border-radius: 22px;
+  background: #2b0c0b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 6px;
+}
+
+.home-category-icon {
+  width: 60px;
+  height: 60px;
+  object-fit: contain;
+}
+
+.home-category-label {
+  font-size: 13px;
+  color: #2b0c0b;
+}
+
+/* 공통 섹션 */
+.home-section {
+  padding: 10px 0 10px;
+}
+
+.home-section-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #2b0c0b;
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.home-subcopy {
+  font-size: 13px;
+  color: #7a6f6f;
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+/* 상품 슬라이드 row */
+.home-product-row {
+  padding: 0 16px 12px;
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+}
+
+/* 스크롤바 살짝만 */
+.home-product-row::-webkit-scrollbar {
+  height: 4px;
+}
+.home-product-row::-webkit-scrollbar-track {
+  background: transparent;
+}
+.home-product-row::-webkit-scrollbar-thumb {
+  background: #ddd;
+  border-radius: 999px;
+}
+
+/* 상품 카드 (조금 작게) */
+.home-card {
+  flex: 0 0 150px;
+  width: 150px;
+  scroll-snap-align: start;
+}
+
+.home-card-thumb {
+  position: relative;
+  width: 100%;
+  height: 150px;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #eee;
+  margin-bottom: 6px;
+}
+
+.home-card-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* 하트 버튼 - 이미지 대신 텍스트♥, 살짝 크게 */
+.home-heart-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  border: none;
+  background: rgba(255, 255, 255, 0.95);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: none !important;  
+}
+
+.heart-icon {
+  font-size: 18px;
+  line-height: 1;
+  color: #c2b1b1;
+}
+.heart-icon.on {
+  color: #ff4b67;
+}
+
+/* 카드 텍스트 */
+.home-card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.home-card-category {
+  font-size: 12px;
+  color: #a19191;
+}
+
+.home-card-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #2b0c0b;
+}
+
+.home-card-price {
+  font-size: 16px;
+  font-weight: 700;
+  color: #2b0c0b;
+}
+.home-card-price span {
+  font-size: 14px;
+}
+
+/* 구분선 */
+.home-divider {
+  border: 0;
+  border-top: 1px solid #eee0dd;
+  margin: 8px 16px 1px;
+}
+
+/* 바텀 여유 */
+.home-bottom-space {
+  height: 8px;
+}

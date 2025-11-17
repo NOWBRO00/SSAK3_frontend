@@ -6,6 +6,7 @@ import BottomNav from "./BottomNav";
 export default function ProductPostPage() {
   const [images, setImages] = useState([]);
   const [details, setDetails] = useState("");
+  const [status, setStatus] = useState("예약중"); // 상품현황
   const stripRef = useRef(null);
 
   const handleImageUpload = (e) => {
@@ -16,10 +17,13 @@ export default function ProductPostPage() {
     }
     const urls = files.map((f) => URL.createObjectURL(f));
     setImages((prev) => [...prev, ...urls]);
-    // 새로 추가되면 맨 뒤로 스크롤
+
     requestAnimationFrame(() => {
       if (stripRef.current) {
-        stripRef.current.scrollTo({ left: stripRef.current.scrollWidth, behavior: "smooth" });
+        stripRef.current.scrollTo({
+          left: stripRef.current.scrollWidth,
+          behavior: "smooth",
+        });
       }
     });
   };
@@ -32,7 +36,9 @@ export default function ProductPostPage() {
     <div className="app-shell">
       <div className="app-frame">
         <header className="post-header">
-          <button className="back-btn" onClick={() => window.history.back()}>←</button>
+          <button className="back-btn" onClick={() => window.history.back()}>
+            ←
+          </button>
           <h1>상품 등록하기</h1>
           <span />
         </header>
@@ -41,7 +47,10 @@ export default function ProductPostPage() {
           {/* 이미지 업로드 */}
           <section className="image-upload-section">
             <div className="section-title">
-              상품 이미지 <span className="limit-text"><b>*</b>최대 5장까지 올릴 수 있습니다.</span>
+              상품 이미지{" "}
+              <span className="limit-text">
+                <b>*</b>최대 5장까지 올릴 수 있습니다.
+              </span>
             </div>
 
             <div className="image-carousel">
@@ -64,7 +73,6 @@ export default function ProductPostPage() {
                 {/* 업로드 썸네일 */}
                 {images.map((src, i) => (
                   <div className="image-thumb" key={i}>
-                    {/* 좌측 상단 순번 배지 */}
                     <span className="thumb-order">{i + 1}</span>
                     <img src={src} alt={`uploaded-${i}`} />
                     <button
@@ -78,7 +86,6 @@ export default function ProductPostPage() {
                   </div>
                 ))}
               </div>
-              {/* 하단 선/진행바는 제거했습니다 */}
             </div>
           </section>
 
@@ -94,19 +101,40 @@ export default function ProductPostPage() {
             <input type="text" placeholder="가격을 입력해 주세요." />
           </section>
 
-          {/* 카테고리 */}
+          {/* 카테고리 (위) */}
           <section className="input-section">
             <label>카테고리</label>
             <div className="select-wrap">
               <select defaultValue="">
-                <option value="" disabled>카테고리 선택</option>
+                <option value="" disabled>
+                  카테고리 선택
+                </option>
                 <option>의류</option>
                 <option>도서 / 문구</option>
                 <option>가전 / 주방</option>
-                <option>도우미</option>
-                <option>기타</option>
+                <option>도우미 / 기타</option>
               </select>
-              <span className="chevron" aria-hidden="true">▾</span>
+              <span className="chevron" aria-hidden="true">
+                ▾
+              </span>
+            </div>
+          </section>
+
+          {/* 상품현황 (아래) */}
+          <section className="input-section">
+            <label>상품현황</label>
+            <div className="status-select-wrap">
+              <select
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+              >
+                <option value="거래가능">거래가능</option>
+                <option value="예약중">예약중</option>
+                <option value="판매완료">판매완료</option>
+              </select>
+              <span className="status-chevron" aria-hidden="true">
+                ▾
+              </span>
             </div>
           </section>
 
