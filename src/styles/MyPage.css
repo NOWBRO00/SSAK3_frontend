@@ -6,32 +6,32 @@
 
 .mypage-wrapper {
   width: 100%;
-  max-width: 390px;        /* 🔹 메인페이지와 동일 폭 */
+  max-width: 390px;        /* 메인페이지와 동일 폭 */
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   background: #fafafa;     /* 메인 app-frame 배경과 맞춤 */
 }
 
-/* ========= HEADER (메인 상단바와 동일 비율) ========= */
+/* ========= HEADER (메인 상단바와 비율 맞춤) ========= */
 .mypage-header {
-  height: 56px;                          /* 🔹 메인과 동일 */
+  height: 56px;                          /* 메인과 동일 */
   background: #ffffff;
-  border-bottom: 1px solid #ededed;      /* 🔹 메인과 동일 */
+  border-bottom: 1px solid #ededed;      /* 메인과 동일 */
   display: grid;
-  grid-template-columns: 56px 1fr 56px;  /* 🔹 좌/중앙/우 구조 */
+  grid-template-columns: 56px 1fr 56px;  /* 좌/중앙/우 구조 */
   align-items: center;
   position: sticky;
   top: 0;
   z-index: 10;
-  padding: 0;                            /* 🔹 여백 제거 */
+  padding: 0;
 }
 
 .mypage-back-btn,
 .mypage-search-btn {
   border: none;
   background: transparent;
-  width: 44px;                           /* 🔹 메인 home-top-btn과 동일 */
+  width: 44px;                           /* 메인 home-top-btn과 동일 */
   height: 44px;
   display: grid;
   place-items: center;
@@ -39,7 +39,7 @@
 }
 
 .mypage-top-icon {
-  width: 22px;                           /* 🔹 메인 top-icon과 동일 */
+  width: 22px;                           /* 메인 top-icon과 동일 */
   height: 22px;
   object-fit: contain;
 }
@@ -51,7 +51,7 @@
 }
 
 .mypage-logo {
-  height: 20px;                          /* 🔹 메인 home-logo와 동일 */
+  height: 20px;                          /* 메인 home-logo와 동일 */
 }
 
 /* ========= BROWN PROFILE AREA ========= */
@@ -168,43 +168,45 @@
   font-size: 11px;
 }
 
-/* ========= ITEM GRID (카드 비율 메인과 동일) ========= */
+/* ========= ITEM GRID (★ 3열 그리드로 변경) ========= */
 .mypage-item-grid {
-  padding: 12px 20px 72px;           /* 아래쪽은 BottomNav 고려 */
+  padding: 12px 12px 72px;           /* 양 옆 살짝 줄여서 3열 여유 확보 */
   display: grid;
-  grid-template-columns: repeat(2, 150px);  /* 🔹 카드 가로 폭 150px 고정 */
-  justify-content: space-between;          /* 🔹 양쪽 여백 균등 */
-  gap: 18px 12px;
+  grid-template-columns: repeat(3, 1fr);  /* 🔹 3개씩 */
+  gap: 16px 8px;                         /* 세로 16, 가로 8 정도 */
 }
 
+/* 카드 한 개 */
 .mypage-item-card {
   position: relative;
 }
 
-/* === 카드 썸네일: 메인페이지 home-card-thumb와 동일 비율/스타일 === */
+/* === 카드 썸네일: 정사각형(1:1) 비율로 변경 === */
 .mypage-card-thumb {
   position: relative;
   width: 100%;
-  height: 150px;          /* 🔹 메인: 150px */
-  border-radius: 14px;    /* 🔹 메인과 동일 */
+  padding-top: 100%;      /* 🔹 정사각형 비율 (가로 = 세로) */
+  border-radius: 12px;
   overflow: hidden;
-  background: #eee;       /* 메인: #eee */
-  margin-bottom: 6px;     /* 메인과 동일 */
+  background: #eee;
+  margin-bottom: 6px;
 }
 
-/* 아직 이미지 없는 상태의 플레이스홀더 */
+/* 이미지/플레이스홀더를 정사각형 영역 안에 꽉 채우기 */
 .mypage-card-img-placeholder {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
 }
 
-/* ❤️ 하트 버튼: 메인페이지 home-heart-btn과 동일 값 */
+/* ❤️ 하트 버튼: 위치는 그대로 */
 .mypage-heart-btn {
   position: absolute;
   top: 6px;
   right: 6px;
-  width: 30px;
-  height: 30px;
+  width: 26px;
+  height: 26px;
   border-radius: 999px;
   border: none;
   display: flex;
@@ -217,14 +219,14 @@
 
 /* 하트 SVG 공통 */
 .mypage-heart-icon-svg {
-  width: 26px;
-  height: 26px;
+  width: 22px;   /* 카드가 작아졌으니 살짝 축소 */
+  height: 22px;
   display: block;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 
-/* 꽉 찬 하트 (메인페이지와 동일) */
+/* 꽉 찬 하트 */
 .mypage-heart-icon-svg--filled {
   fill: #ff4b4b;
   stroke: #ff4b4b;
@@ -232,7 +234,7 @@
   filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.3));
 }
 
-/* 빈 하트 (메인페이지와 동일) */
+/* 빈 하트 */
 .mypage-heart-icon-svg--empty {
   fill: none;
   stroke: #ffffff;
@@ -240,32 +242,32 @@
   filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.6));
 }
 
-/* 카드 정보 영역: 메인페이지 home-card-info와 동일 구조 */
+/* 카드 정보 영역: 3열이라 폰트 조금 줄임 */
 .mypage-card-info {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
 }
 
 .mypage-card-category {
-  font-size: 12px;
+  font-size: 10px;
   color: #a19191;
 }
 
 .mypage-card-title {
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 500;
   color: #2b0c0b;
 }
 
 .mypage-card-price {
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 700;
   color: #2b0c0b;
 }
 
 .mypage-card-price span {
-  font-size: 14px;
+  font-size: 11px;
 }
 
 /* ========================= */
@@ -284,8 +286,8 @@
 
 .mypage-filter-modal {
   width: 100%;
-  max-width: 390px;          /* 래퍼 폭과 맞춤 */
-  padding: 0 16px 80px;      /* 아래 80px 정도 띄워서 BottomNav 위에 떠 있게 */
+  max-width: 390px;
+  padding: 0 16px 80px;
   box-sizing: border-box;
 }
 
