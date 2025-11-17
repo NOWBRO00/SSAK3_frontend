@@ -187,7 +187,7 @@ export default function MainPage() {
 }
 
 /* ========================================================= */
-/* 상품 카드 + 마이페이지와 동일한 하트 버튼 적용된 부분 */
+/* 상품 카드 + 하트 버튼 */
 /* ========================================================= */
 
 function ProductCard({ data, toggleLike }) {
@@ -219,11 +219,12 @@ function ProductCard({ data, toggleLike }) {
   );
 }
 
-/* ❤️ 마이페이지와 동일한 SVG 하트 아이콘 */
+/* ❤️ SVG 하트 아이콘 (스타일은 CSS로 이동) */
 function HeartIcon({ filled }) {
   return filled ? (
     // 🔴 꽉 찬 하트
     <svg
+      className="heart-icon-svg heart-icon-svg--filled"
       width="26"
       height="26"
       viewBox="0 0 24 24"
@@ -232,13 +233,13 @@ function HeartIcon({ filled }) {
       strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
-      style={{ filter: "drop-shadow(0 0 2px rgba(0,0,0,0.3))" }}
     >
       <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z" />
     </svg>
   ) : (
     // 🤍 빈 하트
     <svg
+      className="heart-icon-svg heart-icon-svg--empty"
       width="26"
       height="26"
       viewBox="0 0 24 24"
@@ -247,7 +248,6 @@ function HeartIcon({ filled }) {
       strokeWidth="2.2"
       strokeLinecap="round"
       strokeLinejoin="round"
-      style={{ filter: "drop-shadow(0 0 2px rgba(0,0,0,0.6))" }}
     >
       <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z" />
     </svg>

@@ -192,7 +192,7 @@
   object-fit: cover;
 }
 
-/* 하트 버튼 - 이미지 대신 텍스트♥, 살짝 크게 */
+/* 하트 버튼 */
 .home-heart-btn {
   position: absolute;
   top: 6px;
@@ -201,21 +201,26 @@
   height: 30px;
   border-radius: 999px;
   border: none;
-  background: rgba(255, 255, 255, 0.95);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 0;
-  background: none !important;  
+  background: none; /* 배경 없이 아이콘만 보이게 */
 }
 
-.heart-icon {
-  font-size: 18px;
-  line-height: 1;
-  color: #c2b1b1;
+/* SVG 하트 공통 스타일 */
+.heart-icon-svg {
+  display: block;
 }
-.heart-icon.on {
-  color: #ff4b67;
+
+/* 꽉 찬 하트에만 적용되는 드롭 섀도우 */
+.heart-icon-svg--filled {
+  filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.3));
+}
+
+/* 빈 하트에 적용되는 드롭 섀도우 (조금 더 진하게) */
+.heart-icon-svg--empty {
+  filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.6));
 }
 
 /* 카드 텍스트 */

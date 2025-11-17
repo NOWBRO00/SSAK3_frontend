@@ -188,11 +188,29 @@
   cursor: pointer;
 }
 
-/* 하트 크기 & 살짝 그림자 */
-.mypage-heart-btn svg {
+/* 하트 공통 크기 & 라인 스타일 */
+.mypage-heart-icon-svg {
   width: 26px;
   height: 26px;
+  display: block;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* 꽉 찬 하트 상태 */
+.mypage-heart-icon-svg--filled {
+  fill: #ff4b4b;
+  stroke: #ff4b4b;
+  stroke-width: 1.5;
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.25));
+}
+
+/* 빈 하트 상태 */
+.mypage-heart-icon-svg--empty {
+  fill: none;
+  stroke: #ffffff;
+  stroke-width: 2.2;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
 }
 
 .mypage-item-cat {

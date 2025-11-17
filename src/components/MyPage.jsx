@@ -217,33 +217,21 @@ export default function MyPage() {
   );
 }
 
-/* ====== 하트 아이콘 (빈/꽉 찬 토글) ====== */
+/* ====== 하트 아이콘 (빈/꽉 찬 토글) — 스타일은 CSS에서 ====== */
 function HeartIcon({ filled }) {
   return filled ? (
     // 꽉 찬 하트
     <svg
-      width="26"
-      height="26"
+      className="mypage-heart-icon-svg mypage-heart-icon-svg--filled"
       viewBox="0 0 24 24"
-      fill="#ff4b4b"
-      stroke="#ff4b4b"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
     >
       <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z" />
     </svg>
   ) : (
     // 빈 하트
     <svg
-      width="26"
-      height="26"
+      className="mypage-heart-icon-svg mypage-heart-icon-svg--empty"
       viewBox="0 0 24 24"
-      fill="none"
-      stroke="#ffffff"
-      strokeWidth="2.2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
     >
       <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z" />
     </svg>
