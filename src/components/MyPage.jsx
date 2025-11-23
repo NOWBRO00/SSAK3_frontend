@@ -16,19 +16,23 @@ import tabWishOn from "../image/tab-wish-on.png";
 import tabMyOff from "../image/tab-my-off.png";
 import tabWishOff from "../image/tab-wish-off.png";
 
+// 상태 스티커 이미지
+import stickerReserved from "../image/status-reserved.png";
+import stickerSoldout from "../image/status-soldout.png";
+
 export default function MyPage() {
   const navigate = useNavigate();
 
-  const [activeTab, setActiveTab] = useState("my"); // "my" | "wish"
+  const [activeTab, setActiveTab] = useState("my");
   const [filterOpen, setFilterOpen] = useState(false);
+  // ✅ 상태값: "판매중" | "예약중" | "판매완료"
   const [filterStatus, setFilterStatus] = useState("판매중");
 
-  // 프로필 정보 (백엔드 연동 전 임시값)
   const temperature = 55.7;
   const sellCount = 12;
   const nickname = "닉네임님안녕하세요";
 
-  // 임시 상품 데이터 (등록한 물건들)
+  // ✅ 임시 상품 데이터 (status 통일)
   const [items, setItems] = useState([
     {
       id: 1,
@@ -37,6 +41,7 @@ export default function MyPage() {
       price: 5350000,
       status: "판매중",
       wished: true,
+      img: "https://picsum.photos/300?1",
     },
     {
       id: 2,
@@ -45,6 +50,7 @@ export default function MyPage() {
       price: 500,
       status: "판매중",
       wished: false,
+      img: "https://picsum.photos/300?2",
     },
     {
       id: 3,
@@ -53,6 +59,7 @@ export default function MyPage() {
       price: 5350000,
       status: "예약중",
       wished: true,
+      img: "https://picsum.photos/300?3",
     },
     {
       id: 4,
@@ -61,6 +68,7 @@ export default function MyPage() {
       price: 5350000,
       status: "판매완료",
       wished: false,
+      img: "https://picsum.photos/300?4",
     },
     {
       id: 5,
@@ -69,6 +77,7 @@ export default function MyPage() {
       price: 350000,
       status: "판매중",
       wished: true,
+      img: "https://picsum.photos/300?5",
     },
     {
       id: 6,
@@ -77,25 +86,23 @@ export default function MyPage() {
       price: 50000,
       status: "판매중",
       wished: false,
+      img: "https://picsum.photos/300?6",
     },
   ]);
 
-  // 내 상품 / 찜 목록
   const myItems = items;
   const wishItems = useMemo(
     () => items.filter((item) => item.wished),
     [items]
   );
 
-  // 현재 탭 기준 기본 리스트
   const baseList = activeTab === "my" ? myItems : wishItems;
 
-  // 상태(판매중/예약중/판매완료) 필터 적용
+  // ✅ 선택된 상태만 필터링
   const filteredItems = baseList.filter(
     (item) => item.status === filterStatus
   );
 
-  // 상단에 보여줄 개수
   const productCount = myItems.length;
   const wishCount = wishItems.length;
 
@@ -107,7 +114,6 @@ export default function MyPage() {
     setFilterOpen(false);
   };
 
-  // 찜 토글 (연동 전: 프론트 상태만 변경)
   const toggleLike = (id) => {
     setItems((prev) =>
       prev.map((item) =>
@@ -129,29 +135,38 @@ export default function MyPage() {
             <img src={logo} className="mypage-logo" alt="logo" />
           </div>
 
-          <button className="mypage-search-btn">
+          <button
+            className="mypage-search-btn"
+            onClick={() => navigate("/search")}
+          >
             <img src={searchIcon} alt="검색" className="mypage-top-icon" />
           </button>
         </header>
 
-        {/* 갈색 프로필 영역 */}
+        {/* 프로필 영역 */}
         <section className="mypage-profile-section">
           <div className="mypage-profile-top">
             <div className="mypage-profile-left">
-              <img src={defaultProfile} alt="" className="mypage-profile-img" />
+              <img
+                src={defaultProfile}
+                alt=""
+                className="mypage-profile-img"
+              />
               <div>
                 <div className="mypage-nickname">{nickname}</div>
                 <div className="mypage-selltext">판매수 {sellCount}</div>
               </div>
             </div>
-
-            <div className="mypage-temperature">
-              {temperature.toFixed(1)}°C
-            </div>
           </div>
 
           <div className="mypage-temp-barwrap">
-            <span className="mypage-temp-label">나눔 온기</span>
+            <div className="mypage-temp-row">
+              <span className="mypage-temp-label">나눔 온기</span>
+              <span className="mypage-temp-value">
+                {temperature.toFixed(1)}°C
+              </span>
+            </div>
+
             <div className="mypage-temp-bar">
               <div
                 className="mypage-temp-fill"
@@ -185,9 +200,8 @@ export default function MyPage() {
           </div>
         </section>
 
-        {/* 흰색 콘텐츠 영역 */}
+        {/* 콘텐츠 */}
         <section className="mypage-content">
-          {/* 상품/찜 개수 + 판매상태 드롭다운 */}
           <div className="mypage-filter-wrap">
             <div className="mypage-count">
               <span className="mypage-count-label">{countLabel}</span>
@@ -202,23 +216,53 @@ export default function MyPage() {
             </button>
           </div>
 
-          {/* 카드 리스트 */}
+          {/* 리스트 */}
           <div className="mypage-item-grid">
             {filteredItems.map((item) => {
               const isLiked = !!item.wished;
 
               return (
-                <div key={item.id} className="mypage-item-card">
+                <div
+                  key={item.id}
+                  className="mypage-item-card"
+                  onClick={() => navigate(`/product/${item.id}`)}
+                >
                   <div className="mypage-card-thumb">
-                    {/* 추후 실제 이미지가 생기면 src 교체 */}
-                    <div className="mypage-card-img-placeholder" />
+                    {/* 썸네일 이미지 */}
+                    <img
+                      src={item.img}
+                      alt={item.title}
+                      className={
+                        item.status === "예약중" || item.status === "판매완료"
+                          ? "mypage-card-img gray"
+                          : "mypage-card-img"
+                      }
+                    />
 
-                    {/* ❤️ 하트 버튼 */}
+                    {/* 상태 스티커 (예약중 / 판매완료) */}
+                    {item.status === "예약중" && (
+                      <img
+                        src={stickerReserved}
+                        alt="예약중"
+                        className="mypage-status-sticker"
+                      />
+                    )}
+
+                    {item.status === "판매완료" && (
+                      <img
+                        src={stickerSoldout}
+                        alt="판매완료"
+                        className="mypage-status-sticker"
+                      />
+                    )}
+
+                    {/* ❤️ 하트 */}
                     <button
                       className="mypage-heart-btn"
-                      aria-label="찜"
-                      type="button"
-                      onClick={() => toggleLike(item.id)}
+                      onClick={(e) => {
+                        e.stopPropagation(); // 카드 전체 클릭(상세 이동) 막기
+                        toggleLike(item.id);
+                      }}
                     >
                       <HeartIcon filled={isLiked} />
                     </button>
@@ -241,7 +285,7 @@ export default function MyPage() {
 
         <BottomNav />
 
-        {/* 판매 상태 바텀시트 */}
+        {/* 필터 모달 */}
         {filterOpen && (
           <div
             className="mypage-filter-modal-backdrop"

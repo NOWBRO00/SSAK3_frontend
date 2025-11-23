@@ -42,8 +42,14 @@
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  gap: 18px;
   background: #fafafa;
+}
+
+/* 🔥 폼 전체 간격 조절 */
+.post-main form {
+  display: flex;
+  flex-direction: column;
+  gap: 22px; /* 섹션 사이 간격 (원하면 18~24 사이로 조절) */
 }
 
 /* ===== 섹션 타이틀 ===== */
@@ -188,7 +194,7 @@
 }
 
 .input-section input {
-  height: 36px;
+  height: 40px; /* 살짝 키워서 여유 있게 */
   border-radius: 6px;
   border: 1px solid #7b6e6e;
   background: #fff;
@@ -212,7 +218,7 @@
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
-  height: 32px;
+  height: 36px;
   min-width: 110px;
   border-radius: 999px;
   border: 1px solid #7b6e6e;
@@ -243,7 +249,7 @@
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
-  height: 36px;
+  height: 40px;
   min-width: 140px;
   border-radius: 16px;
   border: 1px solid #7b6e6e;
@@ -312,6 +318,7 @@
   font-weight: 700;
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
   cursor: pointer;
+  margin-top: 4px; /* 텍스트영역과 버튼 사이 살짝 띄우기 */
 }
 
 /* 작은 화면 보정 */

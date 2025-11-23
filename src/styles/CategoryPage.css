@@ -151,3 +151,44 @@
   font-weight: 600;
 }
 .sheet-item.close { background: #ece9e7; }
+
+/* 썸네일 흑백 */
+.thumb.gray {
+  filter: grayscale(1);
+  transition: filter 0.4s ease;
+}
+
+/* 썸네일 감싸는 래퍼 */
+.cat-thumb-wrap {
+  position: relative;
+  width: fit-content;
+}
+
+/* 상태 스티커 */
+.cat-status-sticker {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 68px;
+  pointer-events: none;
+  z-index: 3;
+
+  animation: cat-sticker-pop 0.45s ease-out forwards;
+  opacity: 0;
+  transform: scale(0.8);
+}
+
+@keyframes cat-sticker-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.75);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}

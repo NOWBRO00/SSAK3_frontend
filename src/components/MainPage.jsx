@@ -1,3 +1,4 @@
+// src/components/MainPage.jsx
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../styles/MainPage.css";
@@ -12,16 +13,22 @@ import iconCloth from "../image/category-cloth.png";
 import iconKitchen from "../image/category-kitchen.png";
 import iconEtc from "../image/category-etc.png";
 
-// 상단 뒤로가기 / 검색 아이콘 (이미지)
+// 상단 아이콘
 import iconBack from "../image/vector-33.png";
 import iconSearch from "../image/icon-search.png";
 
+// 상태 스티커 이미지
+import stickerReserved from "../image/status-reserved.png";
+import stickerSoldout from "../image/status-soldout.png";
+
 import BottomNav from "./BottomNav";
+
+/* ========================================================= */
+/* 메인 페이지 */
+/* ========================================================= */
 
 export default function MainPage() {
   const nav = useNavigate();
-
-  // TODO: 추후 로그인한 사용자 이름으로 교체
   const userName = "주예원";
 
   const categories = [
@@ -31,17 +38,38 @@ export default function MainPage() {
     { id: "etc", label: "도우미 / 기타", icon: iconEtc },
   ];
 
-  // 추천 상품 / 찜 목록은 백엔드 연동 후 데이터로 채울 예정 (초기값만 빈 배열)
-  const [recommended, setRecommended] = useState([]);
-  const [likedList, setLikedList] = useState([]);
+  // ✅ status: "판매중" | "예약중" | "판매완료"
+  const [recommended, setRecommended] = useState([
+    {
+      id: 101,
+      category: "의류",
+      title: "봄 간절기 바람막이",
+      price: 52800,
+      liked: false,
+      status: "판매중",
+      img: "https://picsum.photos/300?10",
+    },
+  ]);
 
-  const toggleLikeR = (id) => {
+  const [likedList, setLikedList] = useState([
+    {
+      id: 201,
+      category: "가전 / 주방",
+      title: "소형 전자레인지",
+      price: 35000,
+      liked: true,
+      status: "예약중",
+      img: "https://picsum.photos/300?20",
+    },
+  ]);
+
+  const toggleLikeRecommended = (id) => {
     setRecommended((prev) =>
       prev.map((p) => (p.id === id ? { ...p, liked: !p.liked } : p))
     );
   };
 
-  const toggleLikeL = (id) => {
+  const toggleLikeLiked = (id) => {
     setLikedList((prev) =>
       prev.map((p) => (p.id === id ? { ...p, liked: !p.liked } : p))
     );
@@ -106,7 +134,8 @@ export default function MainPage() {
               <ProductCard
                 key={p.id}
                 data={p}
-                toggleLike={() => toggleLikeR(p.id)}
+                toggleLike={() => toggleLikeRecommended(p.id)}
+                onCardClick={() => nav(`/product/${p.id}`)}
               />
             ))}
           </div>
@@ -114,11 +143,11 @@ export default function MainPage() {
 
         <hr className="home-divider" />
 
-        {/* 찜목록 */}
+        {/* 찜 목록 */}
         <section className="home-section">
           <h2 className="home-section-title">{userName} 님의 찜 목록!</h2>
           <p className="home-subcopy">
-            찜했던 그거! ⏰ 놓치기 아깝잖아요? 다시 보러 오세요!
+            찜했던 그거! ⏰ 놓치기 아깝잖아요?
           </p>
 
           <div className="home-product-row">
@@ -126,7 +155,8 @@ export default function MainPage() {
               <ProductCard
                 key={p.id}
                 data={p}
-                toggleLike={() => toggleLikeL(p.id)}
+                toggleLike={() => toggleLikeLiked(p.id)}
+                onCardClick={() => nav(`/product/${p.id}`)}
               />
             ))}
           </div>
@@ -140,20 +170,47 @@ export default function MainPage() {
 }
 
 /* ========================================================= */
-/* 상품 카드 + 하트 버튼 */
+/* 상품 카드 컴포넌트 */
 /* ========================================================= */
 
-function ProductCard({ data, toggleLike }) {
-  const { img, category, title, price, liked } = data;
+function ProductCard({ data, toggleLike, onCardClick }) {
+  const { img, category, title, price, liked, status } = data;
 
   return (
-    <article className="home-card">
+    <article className="home-card" onClick={onCardClick}>
       <div className="home-card-thumb">
-        <img src={img} alt={title} />
+        {/* 썸네일 */}
+        <img
+          src={img}
+          alt={title}
+          className={
+            status === "예약중" || status === "판매완료"
+              ? "home-thumb-img gray"
+              : "home-thumb-img"
+          }
+        />
+
+        {/* 상태 스티커 */}
+        {status === "예약중" && (
+          <img
+            className="home-status-sticker"
+            src={stickerReserved}
+            alt="예약중"
+          />
+        )}
+        {status === "판매완료" && (
+          <img
+            className="home-status-sticker"
+            src={stickerSoldout}
+            alt="판매완료"
+          />
+        )}
+
+        {/* ❤️ 좋아요 */}
         <button
           className="home-heart-btn"
           onClick={(e) => {
-            e.stopPropagation();
+            e.stopPropagation(); // 카드 클릭(상세 이동) 막기
             toggleLike();
           }}
         >
@@ -165,7 +222,7 @@ function ProductCard({ data, toggleLike }) {
         <div className="home-card-category">{category}</div>
         <div className="home-card-title">{title}</div>
         <div className="home-card-price">
-          {price?.toLocaleString?.() ?? ""}
+          {price?.toLocaleString?.()}
           {price != null && <span> 원</span>}
         </div>
       </div>
@@ -173,10 +230,9 @@ function ProductCard({ data, toggleLike }) {
   );
 }
 
-/* ❤️ SVG 하트 아이콘 (스타일은 CSS로 이동) */
+/* ❤️ 하트 아이콘 */
 function HeartIcon({ filled }) {
   return filled ? (
-    // 🔴 꽉 찬 하트
     <svg
       className="heart-icon-svg heart-icon-svg--filled"
       width="26"
@@ -191,7 +247,6 @@ function HeartIcon({ filled }) {
       <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z" />
     </svg>
   ) : (
-    // 🤍 빈 하트
     <svg
       className="heart-icon-svg heart-icon-svg--empty"
       width="26"

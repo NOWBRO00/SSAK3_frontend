@@ -28,7 +28,7 @@ function formatDateDivider(dateLike) {
 }
 
 export default function ChatRoomPage() {
-  // ✅ /chat/:id 경로 지원 (리스트에서 nav(`/chat/${c.id}`)와 맞춤)
+  // ✅ /chat/:id 경로 지원
   const { id } = useParams();
   const roomId = id || "temp";
 
@@ -46,7 +46,7 @@ export default function ChatRoomPage() {
     },
   });
 
-  // ✅ 예시 메시지 2개만 기본으로 세팅 (디자인 확인용)
+  // 예시 메시지
   const [messages, setMessages] = useState(() => [
     {
       id: "m1",
@@ -72,7 +72,7 @@ export default function ChatRoomPage() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
 
-  // ✅ 첨부 시트(사진/동영상, 카메라, 닫기)
+  // 첨부 시트
   const [attachOpen, setAttachOpen] = useState(false);
   const openAttachSheet = () => setAttachOpen(true);
   const triggerGallery = () => {
@@ -89,7 +89,7 @@ export default function ChatRoomPage() {
   const fileInputRef = useRef(null);
   const cameraInputRef = useRef(null);
 
-  // 새 메시지 추가 시 자동으로 맨 아래로
+  // 새 메시지 추가 시 자동 스크롤
   const scrollToBottom = (smooth = true) => {
     requestAnimationFrame(() => {
       bottomRef.current?.scrollIntoView({
@@ -209,8 +209,17 @@ export default function ChatRoomPage() {
           </button>
         </header>
 
-        {/* 상품 카드 */}
-        <section className="product-card">
+        {/* 상품 카드 👉 클릭 시 상세페이지 이동만 추가 */}
+        <section
+          className="product-card"
+          onClick={() => {
+            if (roomMeta.product?.id) {
+              nav(`/product/${roomMeta.product.id}`);
+            } else {
+              nav("/product");
+            }
+          }}
+        >
           <div
             className="thumb"
             style={{
@@ -231,7 +240,7 @@ export default function ChatRoomPage() {
         <main
           className="room-main"
           ref={listRef}
-          style={{ paddingBottom: `70px` }} // 입력바/배너와 겹치지 않게 여유
+          style={{ paddingBottom: `70px` }}
         >
           {!messages.length && (
             <div className="empty-hint">대화를 시작해 보세요.</div>

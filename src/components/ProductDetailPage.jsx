@@ -9,12 +9,16 @@ import { useNavigate, useParams } from "react-router-dom";
 import BottomNav from "./BottomNav";
 import "../styles/ProductDetailPage.css";
 
-// ⬇️ 스티커/로고 이미지
-import bearImg from "../image/image.png"; // 곰돌이
-import bubbleImg from "../image/image2.png"; // 말풍선
-import logo from "../image/Group 23.png"; // 상단 로고
+// 스티커 이미지
+import stickerReserved from "../image/status-reserved.png";
+import stickerSoldout from "../image/status-soldout.png";
 
-// ⬇️ 상단 아이콘
+// 기존 이미지들
+import bearImg from "../image/image.png";
+import bubbleImg from "../image/image2.png";
+import logo from "../image/Group 23.png";
+
+// 상단 아이콘
 import backIcon from "../image/vector-33.png";
 import searchIcon from "../image/icon-search.png";
 
@@ -30,7 +34,7 @@ const KRW = (n) =>
 const DEFAULT_AVATAR_DATA =
   "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'><circle cx='40' cy='40' r='40' fill='%23eeeeee'/><circle cx='40' cy='32' r='14' fill='%23cccccc'/><rect x='16' y='50' width='48' height='18' rx='9' fill='%23cccccc'/></svg>";
 
-const DEFAULT_MANNER_TEMP = 35; // 기본 매너온도
+const DEFAULT_MANNER_TEMP = 35;
 
 export default function ProductDetailPage() {
   const { id } = useParams();
@@ -45,7 +49,7 @@ export default function ProductDetailPage() {
   const [wishCount, setWishCount] = useState(0);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  // ── Swipe state
+  // swipe state
   const heroRef = useRef(null);
   const startXRef = useRef(0);
   const startYRef = useRef(0);
@@ -53,7 +57,7 @@ export default function ProductDetailPage() {
 
   const main = useMemo(() => p?.images?.[idx] ?? "", [p, idx]);
 
-  // 더미 데이터 로드(백엔드 없이 UI 확인용)
+  // 더미 데이터 로드
   const load = useCallback(async () => {
     setLoading(true);
 
@@ -63,7 +67,7 @@ export default function ProductDetailPage() {
       description:
         "산 이후로 몇 번 탔던 건데 5,000,000원에 가져가세요\n가격 네고 가능함\n○○ 근처 편의점에서 직거래 우대합니다",
       price: 5000000,
-      status: "ON_SALE",
+      status: "예약중", // "예약중" | "판매완료" | 그외는 판매중
       category: { name: "가전 / 주방" },
       images: [
         "https://picsum.photos/800/800?1",
@@ -74,7 +78,7 @@ export default function ProductDetailPage() {
         id: 12,
         nickname: "닉네임12345",
         profile_image_url: "",
-        mannerTemperature: DEFAULT_MANNER_TEMP, // 기본 35도
+        mannerTemperature: DEFAULT_MANNER_TEMP,
       },
       isWishlisted: false,
       wishCount: 0,
@@ -102,7 +106,7 @@ export default function ProductDetailPage() {
     setIdx((i) => Math.min(p.images.length - 1, i + 1));
   }, [p]);
 
-  // ── Touch swipe
+  // touch swipe
   const onTouchStart = (e) => {
     if (!p?.images || p.images.length < 2) return;
     const t = e.touches[0];
@@ -117,7 +121,7 @@ export default function ProductDetailPage() {
     const t = e.touches[0];
     const dx = t.clientX - startXRef.current;
     const dy = Math.abs(t.clientY - startYRef.current);
-    if (dy > Math.abs(dx)) return; // 세로 스크롤 우선
+    if (dy > Math.abs(dx)) return;
   };
 
   const onTouchEnd = (e) => {
@@ -133,7 +137,7 @@ export default function ProductDetailPage() {
     }
   };
 
-  // Desktop drag
+  // mouse drag
   const onMouseDown = (e) => {
     if (!p?.images || p.images.length < 2) return;
     startXRef.current = e.clientX;
@@ -167,7 +171,7 @@ export default function ProductDetailPage() {
     }
   };
 
-  // 키보드 화살표 지원
+  // 키보드 좌우 이동
   useEffect(() => {
     const onKey = (e) => {
       if (e.key === "ArrowLeft") goPrev();
@@ -177,10 +181,13 @@ export default function ProductDetailPage() {
     return () => window.removeEventListener("keydown", onKey);
   }, [goPrev, goNext]);
 
+  // 찜 토글
   const toggleWish = useCallback(async () => {
     if (!p || wishLoading) return;
     setWishLoading(true);
     const next = !isWish;
+
+    // optimistic
     setIsWish(next);
     setWishCount((c) => c + (next ? 1 : -1));
 
@@ -195,12 +202,13 @@ export default function ProductDetailPage() {
       // 롤백
       setIsWish((v) => !v);
       setWishCount((c) => c + (next ? -1 : 1));
-      alert("찜에 실패했어요. 잠시 후 다시 시도해 주세요.");
+      alert("찜에 실패했어요.");
     } finally {
       setWishLoading(false);
     }
   }, [p, isWish, wishLoading]);
 
+  // 1:1 문의 (채팅방 생성 후 이동)
   const startChat = useCallback(async () => {
     if (!p) return;
     try {
@@ -214,74 +222,37 @@ export default function ProductDetailPage() {
       const d = await r.json();
       nav(d?.id ? `/chat/${d.id}` : "/chat");
     } catch {
-      alert("채팅을 시작하지 못했어요.");
+      alert("채팅방 생성에 실패했어요. 잠시 후 다시 시도해 주세요.");
     }
   }, [p, nav]);
 
-  // 매너온도 (기본 35도 사용)
+  // 매너온도
   const rawManner =
-    p?.seller?.mannerTemperature ?? p?.seller?.manner_temperature ?? DEFAULT_MANNER_TEMP;
+    p?.seller?.mannerTemperature ??
+    p?.seller?.manner_temperature ??
+    DEFAULT_MANNER_TEMP;
 
   const mannerTemp =
     typeof rawManner === "number"
       ? Math.max(0, Math.min(100, rawManner))
       : DEFAULT_MANNER_TEMP;
 
-  // 색상 단계: 0~36(파랑), 36~60(노랑), 60~100(빨강)
   const tempLevel =
     mannerTemp < 36 ? "low" : mannerTemp < 60 ? "mid" : "high";
 
-  // 바텀시트 메뉴 동작
-  const handleEditPost = () => {
-    alert("글 수정 기능은 아직 연결되지 않았습니다.");
-    setIsMenuOpen(false);
-  };
+  // 바텀시트 (지금은 껍데기만)
+  const handleEditPost = () => setIsMenuOpen(false);
+  const handleDeletePost = () => setIsMenuOpen(false);
 
-  const handleDeletePost = () => {
-    const ok = window.confirm("상품을 삭제하시겠어요?");
-    if (!ok) return;
-    alert("삭제 기능은 아직 연결되지 않았습니다.");
-    setIsMenuOpen(false);
-  };
-
-  const handleCloseMenu = () => {
-    setIsMenuOpen(false);
-  };
-
-  if (loading) {
-    return (
-      <div className="ss-wrap">
-        <Header onBack={() => nav(-1)} />
-        <div className="ss-skel ss-skel--img" />
-        <div className="ss-skel ss-skel--title" />
-        <div className="ss-skel ss-skel--text" />
-        <div className="ss-skel ss-skel--text" />
-        <FooterSkeleton />
-        <BottomNav />
-      </div>
-    );
-  }
-
-  if (!p) {
-    return (
-      <div className="ss-wrap">
-        <Header onBack={() => nav(-1)} />
-        <div className="ss-error">
-          상품이 없어요.
-          <button className="ss-btn" onClick={load}>
-            다시 시도
-          </button>
-        </div>
-        <BottomNav />
-      </div>
-    );
-  }
+  if (loading) return <div>Loading...</div>;
+  if (!p) return <div>상품이 없어요.</div>;
 
   return (
     <div className="ss-wrap">
-      <Header onBack={() => nav(-1)} />
+      {/* ✅ onSearch 추가해서 넘김 */}
+      <Header onBack={() => nav(-1)} onSearch={() => nav("/search")} />
 
-      {/* 이미지 영역 (스와이프 + 화살표) */}
+      {/* 이미지 + 상태 스티커 */}
       <div
         ref={heroRef}
         className="ss-hero"
@@ -294,23 +265,63 @@ export default function ProductDetailPage() {
         onMouseLeave={onMouseLeave}
       >
         {main ? (
-          <img
-            className="ss-hero__img"
-            src={main}
-            alt={p.title ?? "상품"}
-            draggable={false}
-          />
+          <>
+            <img
+              className={`ss-hero__img ${
+                p.status === "예약중" || p.status === "판매완료"
+                  ? "ss-img-gray"
+                  : ""
+              }`}
+              src={main}
+              alt={p.title ?? "상품"}
+              draggable={false}
+            />
+
+            {/* 상태 스티커 - 중앙, 조금 더 크게 (inline style로 강제) */}
+            {p.status === "예약중" && (
+              <img
+                className="ss-status-sticker"
+                src={stickerReserved}
+                alt="예약중"
+                style={{
+                  position: "absolute",
+                  top: "50%",
+                  left: "50%",
+                  transform: "translate(-50%, -50%)",
+                  width: "140px",
+                  pointerEvents: "none",
+                  zIndex: 5,
+                }}
+              />
+            )}
+            {p.status === "판매완료" && (
+              <img
+                className="ss-status-sticker"
+                src={stickerSoldout}
+                alt="판매완료"
+                style={{
+                  position: "absolute",
+                  top: "50%",
+                  left: "50%",
+                  transform: "translate(-50%, -50%)",
+                  width: "140px",
+                  pointerEvents: "none",
+                  zIndex: 5,
+                }}
+              />
+            )}
+          </>
         ) : (
           <div className="ss-hero__fallback">이미지가 없어요</div>
         )}
 
+        {/* 좌우 버튼 */}
         {p.images?.length > 1 && (
           <>
             <button
               type="button"
               className="ss-hero__nav ss-hero__nav--left"
               onClick={goPrev}
-              aria-label="이전 이미지"
               disabled={idx === 0}
             >
               ‹
@@ -319,8 +330,7 @@ export default function ProductDetailPage() {
               type="button"
               className="ss-hero__nav ss-hero__nav--right"
               onClick={goNext}
-              aria-label="다음 이미지"
-              disabled={idx === (p.images?.length ?? 1) - 1}
+              disabled={idx === p.images.length - 1}
             >
               ›
             </button>
@@ -328,70 +338,53 @@ export default function ProductDetailPage() {
         )}
       </div>
 
-      {/* 본문 + CTA */}
+      {/* 본문 내용 */}
       <div className="ss-body">
         <div className="ss-meta">
           <div className="ss-cat">{p.category?.name || "기타"}</div>
-          <button
-            className="ss-icon-btn"
-            aria-label="메뉴"
-            onClick={() => setIsMenuOpen(true)}
-          >
+          <button className="ss-icon-btn" onClick={() => setIsMenuOpen(true)}>
             <DotsIcon />
           </button>
         </div>
 
         <h1 className="ss-title">{p.title}</h1>
-
-        {/* 가격 */}
         <div className="ss-price">{KRW(p.price)}</div>
 
         <hr className="ss-sep" />
 
-        {/* 판매자 + 매너온도 */}
+        {/* 판매자 정보 + 매너온도 */}
         <div className="ss-seller">
           <img
             className="ss-avatar"
-            src={p.seller?.profile_image_url || DEFAULT_AVATAR_DATA}
-            onError={(e) => {
-              e.currentTarget.onerror = null;
-              e.currentTarget.src = DEFAULT_AVATAR_DATA;
-            }}
+            src={p.seller.profile_image_url || DEFAULT_AVATAR_DATA}
             alt=""
           />
           <div className="ss-seller__info">
             <div className="ss-seller__top">
-              <span className="ss-seller__name">
-                {p.seller?.nickname || "닉네임"}
-              </span>
-              {mannerTemp != null && (
-                <div className="ss-temp">
-                  <span className="ss-temp__value">
-                    {mannerTemp.toFixed(1)}
-                    <span className="ss-temp__unit">°C</span>
-                  </span>
-                </div>
-              )}
-            </div>
-            {mannerTemp != null && (
-              <div className="ss-temp__bar">
-                <div
-                  className={
-                    "ss-temp__bar-fill" +
-                    (tempLevel ? ` ss-temp__bar-fill--${tempLevel}` : "")
-                  }
-                  style={{ width: `${mannerTemp}%` }}
-                />
+              <span className="ss-seller__name">{p.seller.nickname}</span>
+
+              <div className="ss-temp">
+                <span className="ss-temp__value">
+                  {mannerTemp.toFixed(1)}
+                  <span className="ss-temp__unit">°C</span>
+                </span>
               </div>
-            )}
+            </div>
+
+            <div className="ss-temp__bar">
+              <div
+                className={`ss-temp__bar-fill ss-temp__bar-fill--${tempLevel}`}
+                style={{ width: `${mannerTemp}%` }}
+              />
+            </div>
           </div>
         </div>
 
         <p className="ss-desc">{p.description}</p>
 
-        {/* CTA: 곰돌이 + 말풍선 + 버튼 */}
+        {/* CTA 영역 */}
         <footer className="ss-footer">
-          <div className="ss-stickers-row" aria-hidden>
+          <div className="ss-stickers-row">
             <img className="ss-sticker-bear" src={bearImg} alt="" />
             <img className="ss-sticker-bubble" src={bubbleImg} alt="" />
           </div>
@@ -400,42 +393,39 @@ export default function ProductDetailPage() {
             <button
               className="ss-cta"
               onClick={startChat}
-              disabled={p.status === "SOLD_OUT" || p.status === "판매완료"}
+              disabled={p.status === "판매완료"}
             >
               1:1 문의하기
             </button>
+
+            {/* 찜 버튼 - MyPage와 동일 SVG 하트 사용 */}
             <button
               className={`ss-like ${isWish ? "is-on" : ""}`}
               onClick={toggleWish}
-              aria-pressed={isWish}
               disabled={wishLoading}
-              title="찜"
+              type="button"
+              aria-label="찜하기"
             >
-              {isWish ? "♥" : "♡"}
-              <span className="ss-like__count">{wishCount}</span>
+              <HeartIcon filled={isWish} />
+              {wishCount > 0 && (
+                <span className="ss-like__count">{wishCount}</span>
+              )}
             </button>
           </div>
         </footer>
       </div>
 
-      {/* 네비게이션 바 자리 확보 + 실제 네비게이션 */}
-      <div style={{ height: 0 }} />
       <BottomNav />
 
-      {/* 바텀시트: 글 수정 / 상품 삭제 / 닫기 */}
+      {/* 바텀시트 */}
       {isMenuOpen && (
-        <div className="ss-sheet-backdrop" onClick={handleCloseMenu}>
+        <div className="ss-sheet-backdrop" onClick={() => setIsMenuOpen(false)}>
           <div className="ss-sheet" onClick={(e) => e.stopPropagation()}>
             <div className="ss-sheet__panel">
-              <button
-                type="button"
-                className="ss-sheet__btn"
-                onClick={handleEditPost}
-              >
+              <button className="ss-sheet__btn" onClick={handleEditPost}>
                 글 수정
               </button>
               <button
-                type="button"
                 className="ss-sheet__btn ss-sheet__btn--danger"
                 onClick={handleDeletePost}
               >
@@ -444,9 +434,8 @@ export default function ProductDetailPage() {
             </div>
             <div className="ss-sheet__panel">
               <button
-                type="button"
                 className="ss-sheet__btn"
-                onClick={handleCloseMenu}
+                onClick={() => setIsMenuOpen(false)}
               >
                 닫기
               </button>
@@ -458,33 +447,49 @@ export default function ProductDetailPage() {
   );
 }
 
-/* ===== 상단 헤더 컴포넌트 ===== */
-function Header({ onBack }) {
+/* ===== 상단 헤더 ===== */
+// ✅ onSearch 추가
+function Header({ onBack, onSearch }) {
   return (
     <header className="ss-appbar">
-      <button className="ss-icon-btn" aria-label="뒤로가기" onClick={onBack}>
+      <button className="ss-icon-btn" onClick={onBack}>
         <img src={backIcon} alt="뒤로가기" className="ss-icon-img" />
       </button>
 
-      <img src={logo} alt="ssaksseuri logo" className="ss-logo-img" />
+      <img src={logo} alt="logo" className="ss-logo-img" />
 
-      <button className="ss-icon-btn" aria-label="검색">
+      <button className="ss-icon-btn" onClick={onSearch}>
         <img src={searchIcon} alt="검색" className="ss-icon-img" />
       </button>
     </header>
   );
 }
 
-function FooterSkeleton() {
-  return <div className="ss-footer ss-footer--skel" />;
-}
-
 function DotsIcon() {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden>
+    <svg width="20" height="20" viewBox="0 0 24 24">
       <circle cx="5" cy="12" r="2" />
       <circle cx="12" cy="12" r="2" />
       <circle cx="19" cy="12" r="2" />
+    </svg>
+  );
+}
+
+/* MyPage와 동일한 하트 SVG */
+function HeartIcon({ filled }) {
+  return filled ? (
+    <svg
+      className="ss-heart-icon-svg ss-heart-icon-svg--filled"
+      viewBox="0 0 24 24"
+    >
+      <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z" />
+    </svg>
+  ) : (
+    <svg
+      className="ss-heart-icon-svg ss-heart-icon-svg--empty"
+      viewBox="0 0 24 24"
+    >
+      <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z" />
     </svg>
   );
 }

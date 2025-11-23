@@ -40,8 +40,6 @@
 .ss-icon-btn:active {
   background: #f3f3f3;
 }
-
-/* ⬇️ 추가: 상단 아이콘 이미지 크기 */
 .ss-icon-img {
   width: 18px;
   height: 18px;
@@ -265,26 +263,45 @@
 
 /* 찜 버튼 */
 .ss-like {
-  width: 48px;
-  height: 48px;
+  width: 52px;
+  height: 52px;
   border: none;
   background: transparent;
-  font-size: 22px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  line-height: 1;
   padding: 0;
 }
-.ss-like.is-on {
-  color: #e22;
+.ss-like.is-on .ss-heart-icon-svg--filled {
+  /* 이미 fill/stroke는 SVG 쪽에서 처리 */
 }
 .ss-like__count {
   display: block;
   font-size: 12px;
   margin-top: 2px;
   color: #666;
+}
+
+/* 하트 SVG (MyPage 스타일) */
+.ss-heart-icon-svg {
+  width: 24px;
+  height: 24px;
+  display: block;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.ss-heart-icon-svg--filled {
+  fill: #ff4b4b;
+  stroke: #ff4b4b;
+  stroke-width: 1.5;
+  filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.3));
+}
+.ss-heart-icon-svg--empty {
+  fill: none;
+  stroke: #7a6f6f;
+  stroke-width: 2.1;
+  filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.4));
 }
 
 /* 스켈레톤 */
@@ -363,4 +380,39 @@
 button:focus-visible {
   outline: 2px solid #946cff;
   outline-offset: 2px;
+}
+
+/* 이미지 흑백 처리 */
+.ss-img-gray {
+  filter: grayscale(1);
+  transition: filter 0.4s ease;
+}
+
+/* 상태 스티커(예약중/판매완료) – 중앙 + 더 크게 */
+.ss-status-sticker {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 140px; /* 마이페이지보다 살짝 크게 */
+  z-index: 5;
+  pointer-events: none;
+
+  animation: sticker-pop 0.45s ease-out forwards;
+  opacity: 0;
+}
+
+@keyframes sticker-pop {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.8);
+  }
+  70% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.06);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
 }

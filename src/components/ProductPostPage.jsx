@@ -5,8 +5,8 @@ import BottomNav from "./BottomNav";
 
 export default function ProductPostPage() {
   const [images, setImages] = useState([]);
-  const [title, setTitle] = useState("");      // 제목
-  const [price, setPrice] = useState("");      // 가격(문자열 상태)
+  const [title, setTitle] = useState("");       // 제목
+  const [price, setPrice] = useState("");       // 가격(문자열 상태)
   const [category, setCategory] = useState(""); // 카테고리
   const [details, setDetails] = useState("");   // 상세 내용
   const [status, setStatus] = useState("거래가능"); // 상품현황 (기본 거래가능)
