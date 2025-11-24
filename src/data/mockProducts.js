@@ -1,6 +1,5 @@
 // src/data/mockProducts.js
 
-// 전체 더미 상품 목록 (백엔드 붙기 전까지 여기만 수정해서 공통 사용)
 export const MOCK_PRODUCTS = [
   {
     id: 1,
@@ -8,7 +7,7 @@ export const MOCK_PRODUCTS = [
     description:
       "산 이후로 몇 번 안 탔던 바람막이입니다.\n가격 네고 가능해요.\n○○ 근처 편의점에서 직거래 원해요.",
     price: 52800,
-    status: "판매중", // 판매중 | 예약중 | 판매완료
+    status: "판매중",
     category: "의류",
     thumbnail: "https://picsum.photos/300?10",
     images: [
@@ -24,7 +23,7 @@ export const MOCK_PRODUCTS = [
     likes: 0,
     isWishlisted: false,
     createdAt: "2025-01-03T08:00:00Z",
-    tags: ["search", "recommended", "mypage"], // 어디에서 쓸지 표시
+    tags: ["search", "recommended", "mypage"],
   },
 
   {
@@ -68,6 +67,165 @@ export const MOCK_PRODUCTS = [
     likes: 0,
     isWishlisted: false,
     createdAt: "2025-01-01T10:00:00Z",
+    tags: ["search", "mypage"],
+  },
+
+  // 🔹 새로 추가된 항목들 (4~10번)
+
+  {
+    id: 4,
+    title: "아이패드 9세대 64GB 실사용 적음",
+    description:
+      "케이스+필름 모두 장착 상태.\n생활기스 거의 없고 정상 작동합니다.",
+    price: 280000,
+    status: "판매중",
+    category: "전자기기",
+    thumbnail: "https://picsum.photos/300?40",
+    images: [
+      "https://picsum.photos/800/800?401",
+      "https://picsum.photos/800/800?402",
+    ],
+    seller: {
+      id: "u4",
+      nickname: "IT덕후",
+      profile_image_url: "",
+      mannerTemperature: 71.2,
+    },
+    likes: 3,
+    isWishlisted: false,
+    createdAt: "2025-01-04T11:20:00Z",
+    tags: ["search", "recommended"],
+  },
+
+  {
+    id: 5,
+    title: "캠핑 접이식 의자",
+    description: "2번 사용했습니다.\n가볍고 튼튼합니다. 직거래 환영!",
+    price: 15000,
+    status: "판매중",
+    category: "스포츠 / 레저",
+    thumbnail: "https://picsum.photos/300?50",
+    images: ["https://picsum.photos/800/800?501"],
+    seller: {
+      id: "u5",
+      nickname: "캠핑러버",
+      profile_image_url: "",
+      mannerTemperature: 64.1,
+    },
+    likes: 1,
+    isWishlisted: false,
+    createdAt: "2025-01-05T14:00:00Z",
+    tags: ["search"],
+  },
+
+  {
+    id: 6,
+    title: "여성용 데일리 스니커즈 240",
+    description: "상태 좋아요! 세탁 완료.\n발볼 적당하고 착화감 좋아요.",
+    price: 18000,
+    status: "예약중",
+    category: "의류",
+    thumbnail: "https://picsum.photos/300?60",
+    images: [
+      "https://picsum.photos/800/800?601",
+      "https://picsum.photos/800/800?602",
+    ],
+    seller: {
+      id: "u6",
+      nickname: "신발수집가",
+      profile_image_url: "",
+      mannerTemperature: 58.3,
+    },
+    likes: 2,
+    isWishlisted: true,
+    createdAt: "2025-01-06T09:10:00Z",
+    tags: ["search", "liked"],
+  },
+
+  {
+    id: 7,
+    title: "소니 WH-1000XM4 헤드폰",
+    description:
+      "박스 있음 / 생활기스 적음 / 노캔 정상 동작합니다.\n직거래 원합니다.",
+    price: 190000,
+    status: "판매완료",
+    category: "전자기기",
+    thumbnail: "https://picsum.photos/300?70",
+    images: ["https://picsum.photos/800/800?701"],
+    seller: {
+      id: "u7",
+      nickname: "음악쟁이",
+      profile_image_url: "",
+      mannerTemperature: 77.5,
+    },
+    likes: 5,
+    isWishlisted: false,
+    createdAt: "2025-01-06T17:00:00Z",
+    tags: ["search", "mypage"],
+  },
+
+  {
+    id: 8,
+    title: "원목 2단 책장 판매",
+    description:
+      "이사 준비로 급처.\n튼튼하고 흔들림 없습니다.\n직접 가져가셔야 해요.",
+    price: 30000,
+    status: "판매중",
+    category: "가구",
+    thumbnail: "https://picsum.photos/300?80",
+    images: ["https://picsum.photos/800/800?801"],
+    seller: {
+      id: "u8",
+      nickname: "이사중",
+      profile_image_url: "",
+      mannerTemperature: 43.9,
+    },
+    likes: 0,
+    isWishlisted: false,
+    createdAt: "2025-01-07T12:40:00Z",
+    tags: ["search"],
+  },
+
+  {
+    id: 9,
+    title: "스위치 게임 모음 (젤다, 마리오 포함)",
+    description: "게임 디스크/케이스 모두 양호합니다.\n일괄 판매만 가능해요.",
+    price: 95000,
+    status: "판매중",
+    category: "게임 / 취미",
+    thumbnail: "https://picsum.photos/300?90",
+    images: ["https://picsum.photos/800/800?901"],
+    seller: {
+      id: "u9",
+      nickname: "겜순이",
+      profile_image_url: "",
+      mannerTemperature: 67.8,
+    },
+    likes: 8,
+    isWishlisted: true,
+    createdAt: "2025-01-08T18:00:00Z",
+    tags: ["search", "recommended", "liked"],
+  },
+
+  {
+    id: 10,
+    title: "스터디 책상 + 의자 세트",
+    description:
+      "책상+의자 세트로 드립니다.\n생활기스 있지만 사용에는 문제 없습니다.",
+    price: 45000,
+    status: "판매완료",
+    category: "가구",
+    thumbnail: "https://picsum.photos/300?100",
+    images: ["https://picsum.photos/800/800?1001"],
+    seller: {
+      id: "u10",
+      nickname: "공부하는곰",
+      profile_image_url: "",
+      mannerTemperature: 59.2,
+    },
+    likes: 0,
+    isWishlisted: false,
+    createdAt: "2025-01-09T15:20:00Z",
     tags: ["search", "mypage"],
   },
 ];

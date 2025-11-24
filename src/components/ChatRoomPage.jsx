@@ -13,6 +13,10 @@ import "../styles/ChatRoomPage.css";
 import camIcon from "../image/icon_camera.png";
 import sendIcon from "../image/icon_send.png";
 
+/* ===== 공통 상수 (백엔드 연동용) ===== */
+const API_BASE = "http://localhost:8080"; // 서버 주소
+const USER_ID = 1; // TODO: 로그인 연동 후 실제 유저 ID로 교체
+
 /* 시간/날짜 유틸 */
 function formatKoreanTime(dateLike) {
   const d = new Date(dateLike);
@@ -40,19 +44,20 @@ export default function ChatRoomPage() {
 
   const nav = useNavigate();
 
-  // 방 메타 정보(임시)
+  /* 방 메타 정보(임시 더미)
+     - product.id 를 숫자로 둬서 /product/:id 라우트 및 상세 더미/백엔드와 맞춤 */
   const [roomMeta] = useState({
     roomId,
     peer: { id: "peer-1", nickname: "닉네임12345" },
     product: {
-      id: "p1",
+      id: 3, // 예: productId 3
       title: "00자전거 팝니다 사실 분",
-      price: 5350000,
+      price: 5_350_000,
       thumbUrl: "https://via.placeholder.com/120x120?text=BIKE",
     },
   });
 
-  // 예시 메시지
+  // 예시 메시지 (실제 연동 시 /api/chatrooms/{roomId}/messages + 소켓으로 대체)
   const [messages, setMessages] = useState(() => [
     {
       id: "m1",
@@ -113,6 +118,7 @@ export default function ChatRoomPage() {
 
   const canSend = text.trim().length > 0 && !uploading;
 
+  // 텍스트 전송 (지금은 가짜 전송)
   const handleSend = () => {
     if (!canSend) return;
     const content = text.trim();
@@ -131,7 +137,7 @@ export default function ChatRoomPage() {
     };
     setMessages((prev) => [...prev, optimistic]);
 
-    // fake send
+    // TODO: 실제 /api/messages 전송 후 응답에 맞게 id / sendStatus 갱신
     setTimeout(() => {
       setMessages((prev) =>
         prev.map((m) =>
@@ -141,6 +147,7 @@ export default function ChatRoomPage() {
     }, 400);
   };
 
+  // 갤러리에서 파일 선택
   const onFilesSelected = async (e) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
@@ -161,7 +168,7 @@ export default function ChatRoomPage() {
         };
         setMessages((prev) => [...prev, optimistic]);
 
-        // fake upload
+        // TODO: 실제 업로드 API 연동
         setTimeout(() => {
           setMessages((prev) =>
             prev.map((m) =>
@@ -211,6 +218,7 @@ export default function ChatRoomPage() {
     [roomId]
   );
 
+  // 날짜 divider + 메시지 합쳐서 렌더링용 배열로 변환
   const rendered = useMemo(() => {
     if (!messages.length) return [];
     const out = [];
@@ -229,6 +237,33 @@ export default function ChatRoomPage() {
     });
     return out;
   }, [messages]);
+
+  /* ===== 채팅방 나가기: DELETE /api/chatrooms/{roomId} 가 있다고 가정 ===== */
+  const handleLeaveRoom = async () => {
+    setMenuOpen(false);
+    if (!window.confirm("이 채팅방을 나가시겠어요?")) return;
+
+    try {
+      const res = await fetch(`${API_BASE}/api/chatrooms/${roomId}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ userId: USER_ID }), // 필요 없으면 백엔드에서 무시
+      });
+
+      if (!res.ok) {
+        throw new Error("채팅방 나가기 실패");
+      }
+
+      // ✅ 여기까지 성공하면 백엔드에서 구매자/판매자 둘 다에게서
+      //    이 방이 안 보이도록 처리해주면 됨
+      alert("채팅방을 나갔습니다.");
+      nav("/chat"); // 채팅 목록으로 이동
+    } catch (e) {
+      console.error(e);
+      alert("채팅방 나가기 중 오류가 발생했어요.");
+    }
+  };
 
   return (
     <div className="room-shell">
@@ -252,11 +287,11 @@ export default function ChatRoomPage() {
           </button>
         </header>
 
-        {/* 상품 카드 */}
+        {/* 상품 카드 (클릭 시 상품 상세로 이동) */}
         <section
           className="product-card"
           onClick={() => {
-            if (roomMeta.product?.id) {
+            if (roomMeta.product?.id != null) {
               nav(`/product/${roomMeta.product.id}`);
             } else {
               nav("/product");
@@ -283,7 +318,7 @@ export default function ChatRoomPage() {
         <main
           className="room-main"
           ref={listRef}
-          style={{ paddingBottom: `70px` }}
+          style={{ paddingBottom: "70px" }}
         >
           {!messages.length && (
             <div className="empty-hint">대화를 시작해 보세요.</div>
@@ -393,7 +428,7 @@ export default function ChatRoomPage() {
           </div>
         )}
 
-        {/* ⋮ 메뉴 */}
+        {/* ⋮ 메뉴 (채팅방 나가기 포함) */}
         {menuOpen && (
           <div
             className="sheet-backdrop"
@@ -405,10 +440,7 @@ export default function ChatRoomPage() {
             >
               <button
                 className="sheet-item danger"
-                onClick={() => {
-                  setMenuOpen(false);
-                  nav(-1);
-                }}
+                onClick={handleLeaveRoom}
               >
                 채팅방 나가기
               </button>
@@ -504,6 +536,7 @@ function CameraModal({ onClose, onCapture }) {
   const [ready, setReady] = useState(false);
   const [shotUrl, setShotUrl] = useState(null);
   const shotBlobRef = useRef(null);
+  const shotUrlRef = useRef(null);
 
   useEffect(() => {
     async function start() {
@@ -535,11 +568,11 @@ function CameraModal({ onClose, onCapture }) {
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((t) => t.stop());
       }
-      if (shotUrl) {
-        URL.revokeObjectURL(shotUrl);
+      if (shotUrlRef.current) {
+        URL.revokeObjectURL(shotUrlRef.current);
       }
     };
-  }, [onClose, shotUrl]);
+  }, [onClose]);
 
   const takeShot = () => {
     if (!videoRef.current) return;
@@ -555,8 +588,11 @@ function CameraModal({ onClose, onCapture }) {
       (blob) => {
         if (!blob) return;
         shotBlobRef.current = blob;
+        if (shotUrlRef.current) {
+          URL.revokeObjectURL(shotUrlRef.current);
+        }
         const url = URL.createObjectURL(blob);
-        if (shotUrl) URL.revokeObjectURL(shotUrl);
+        shotUrlRef.current = url;
         setShotUrl(url);
       },
       "image/jpeg",
@@ -571,8 +607,9 @@ function CameraModal({ onClose, onCapture }) {
   };
 
   const handleRetry = () => {
-    if (shotUrl) {
-      URL.revokeObjectURL(shotUrl);
+    if (shotUrlRef.current) {
+      URL.revokeObjectURL(shotUrlRef.current);
+      shotUrlRef.current = null;
     }
     shotBlobRef.current = null;
     setShotUrl(null);

@@ -1,3 +1,4 @@
+// src/components/SearchPage.jsx
 import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -13,11 +14,14 @@ import BottomNav from "./BottomNav";
 import stickerReserved from "../image/status-reserved.png";
 import stickerSoldout from "../image/status-soldout.png";
 
+// 🔹 공통 더미 상품
+import { MOCK_PRODUCTS } from "../data/mockProducts";
+
 export default function SearchPage() {
   const navigate = useNavigate();
 
   const [searchTerm, setSearchTerm] = useState("바람막이");
-  const [keyword, setKeyword] = useState("");
+  const [keyword, setKeyword] = useState(""); // 🔹 실제 검색 필터에 사용
 
   // 최근 검색어
   const [recent, setRecent] = useState(["바람막이", "자켓", "패딩"]);
@@ -32,42 +36,10 @@ export default function SearchPage() {
   const [sortOpen, setSortOpen] = useState(false);
   const [sortType, setSortType] = useState("인기순");
 
-  // ✅ status: "판매중" | "예약중" | "판매완료"
-  const [products, setProducts] = useState([
-    {
-      id: 1,
-      title: "썸플레이스 후드 바람막이 중고",
-      price: 52800,
-      seller: "닉네임12345",
-      likes: 0,
-      liked: false,
-      status: "예약중",
-      img: "https://via.placeholder.com/300x300?text=예약중",
-      createdAt: "2025-01-01T10:00:00Z",
-    },
-    {
-      id: 2,
-      title: "썸플레이스 후드 바람막이 중고",
-      price: 52800,
-      seller: "닉네임12345",
-      likes: 0,
-      liked: false,
-      status: "판매완료",
-      img: "https://via.placeholder.com/300x300?text=판매완료",
-      createdAt: "2025-01-02T09:30:00Z",
-    },
-    {
-      id: 3,
-      title: "바람막이 상의 상태 깔끔",
-      price: 45000,
-      seller: "닉네임89",
-      likes: 0,
-      liked: false,
-      status: "판매중",
-      img: "https://via.placeholder.com/300x300?text=상품",
-      createdAt: "2025-01-03T08:00:00Z",
-    },
-  ]);
+  // ✅ 초기 상품: 공통 MOCK_PRODUCTS 중 search 태그 달린 것만
+  const [products, setProducts] = useState(() =>
+    MOCK_PRODUCTS.filter((p) => p.tags?.includes("search"))
+  );
 
   const handleInputChange = (e) => setSearchTerm(e.target.value);
 
@@ -77,7 +49,7 @@ export default function SearchPage() {
     if (!q) return;
 
     setSearchTerm(q);
-    setKeyword(q);
+    setKeyword(q); // 🔹 실제 검색어 상태로 저장
 
     // 최근 검색어 갱신 (중복 제거 + 앞에 추가, 최대 3개)
     setRecent((prev) => {
@@ -85,7 +57,7 @@ export default function SearchPage() {
       return next.slice(0, 3);
     });
 
-    // TODO: 실제 검색 API 연동
+    // TODO: 실제 검색 API 연동 시 여기서 fetch/axios 호출
   };
 
   const handleSearch = (e) => {
@@ -122,20 +94,23 @@ export default function SearchPage() {
   const visibleProducts = useMemo(() => {
     let base = products;
 
-    if (keyword.trim()) {
-      const lower = keyword.toLowerCase();
-      base = base.filter((p) => p.title.toLowerCase().includes(lower));
+    // 🔹 keyword 기준으로 검색 필터 적용
+    const q = keyword.trim().toLowerCase();
+    if (q) {
+      base = base.filter((p) =>
+        p.title.toLowerCase().includes(q)
+      );
     }
 
     if (sortType === "거래 가능") {
-      // 거래 가능 → "판매중"만
+      // 거래 가능 → "판매중"만 (mock는 한글 status)
       return base.filter((p) => p.status === "판매중");
     }
 
     const copied = [...base];
 
     if (sortType === "인기순") {
-      copied.sort((a, b) => b.likes - a.likes);
+      copied.sort((a, b) => (b.likes || 0) - (a.likes || 0));
     } else if (sortType === "최신순") {
       copied.sort(
         (a, b) =>
@@ -154,7 +129,7 @@ export default function SearchPage() {
           <button
             className="sp-back"
             aria-label="뒤로가기"
-            onClick={() => window.history.back()}
+            onClick={() => navigate(-1)}
           >
             <img src={vector33} alt="" />
           </button>
@@ -265,10 +240,10 @@ export default function SearchPage() {
               className="sp-card"
               onClick={() => navigate(`/product/${p.id}`)}
             >
-              {/* 썸네일 + 흑백 + 상태 스티커 (카테고리와 동일 구조) */}
+              {/* 썸네일 + 흑백 + 상태 스티커 */}
               <div className="sp-thumb-wrap">
                 <img
-                  src={p.img}
+                  src={p.thumbnail || p.img}
                   alt={p.title}
                   className={
                     p.status === "예약중" || p.status === "판매완료"
@@ -294,18 +269,22 @@ export default function SearchPage() {
                 )}
               </div>
 
-              {/* 정보 영역 (카테고리 / 제목 / 가격 / 닉네임) */}
+              {/* 정보 영역 */}
               <div className="info">
-                <div className="category">의류</div>
+                <div className="category">{p.category || "의류"}</div>
                 <h3 className="title">{p.title}</h3>
-                <div className="price">{p.price.toLocaleString()}원</div>
+                <div className="price">
+                  {p.price != null ? p.price.toLocaleString() : 0}원
+                </div>
 
                 <div className="meta">
-                  <span className="seller">{p.seller}</span>
+                  <span className="seller">
+                    {p.seller?.nickname || p.seller || "닉네임"}
+                  </span>
                 </div>
               </div>
 
-              {/* 찜 버튼 – 카테고리 페이지처럼 우측에 분리 */}
+              {/* 찜 버튼 */}
               <button
                 className={"like-btn" + (p.liked ? " liked" : "")}
                 onClick={(e) => {
@@ -323,7 +302,7 @@ export default function SearchPage() {
                     fill={p.liked ? "#e85b5b" : "none"}
                   />
                 </svg>
-                <span className="like-num">{p.likes}</span>
+                <span className="like-num">{p.likes ?? 0}</span>
               </button>
             </article>
           ))}

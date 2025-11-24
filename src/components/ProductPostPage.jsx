@@ -1,27 +1,109 @@
-import React, { useRef, useState } from "react";
+// src/components/ProductPostPage.jsx
+import React, { useEffect, useRef, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import "../styles/ProductPostPage.css";
 import galleryIcon from "../image/gallery1.png";
 import BottomNav from "./BottomNav";
 
+// 백엔드 서버 주소 (명세서 기준)
+const API_BASE = "http://localhost:8080";
+
+// 카테고리 코드 -> 백엔드 categoryName 매핑
+const CATEGORY_NAME_MAP = {
+  clothes: "의류",
+  books: "도서 / 문구",
+  appliances: "가전 / 주방",
+  helper: "도우미 / 기타",
+};
+
+// 백엔드 categoryName -> 프론트 코드 매핑 (수정 모드에서 사용)
+const CATEGORY_CODE_MAP = {
+  "의류": "clothes",
+  "도서 / 문구": "books",
+  "가전 / 주방": "appliances",
+  "도우미 / 기타": "helper",
+};
+
+// 임시 판매자 ID (로그인 연동 전까지 사용)
+const MOCK_SELLER_ID = 1;
+
 export default function ProductPostPage() {
+  const { id } = useParams();              // /product/:id/edit 인 경우 id 존재
+  const navigate = useNavigate();
+  const isEdit = !!id;                     // true면 수정 모드, false면 등록 모드
+
   // 이미지: File + 미리보기 URL 같이 들고 있기
   const [images, setImages] = useState([]); // [{ file, previewUrl }]
-  const [title, setTitle] = useState(""); // 제목
-  const [price, setPrice] = useState(""); // 가격(문자열 상태)
-
-  // 카테고리는 코드로 관리 (나중에 categoryId로 매핑)
+  const [title, setTitle] = useState("");   // 제목
+  const [price, setPrice] = useState("");   // 가격(문자열 상태)
   // clothes / books / appliances / helper
   const [category, setCategory] = useState("");
-
   const [details, setDetails] = useState(""); // 상세 내용
-
-  // 상품현황: 백엔드 Enum에 맞춰서 관리
-  // ON_SALE / RESERVED / SOLD_OUT
-  const [status, setStatus] = useState("ON_SALE");
+  const [loading, setLoading] = useState(isEdit); // 수정모드면 로딩 true로 시작
 
   const stripRef = useRef(null);
 
-  // 이미지 업로드 (최대 5장, 아직 서버 전송 X)
+  // =========================
+  // 수정 모드일 때 기존 데이터 불러오기
+  // =========================
+  useEffect(() => {
+    if (!isEdit) return;
+
+    const fetchProduct = async () => {
+      try {
+        setLoading(true);
+        const res = await fetch(`${API_BASE}/api/products/${id}`);
+        if (!res.ok) throw new Error("상품 조회 실패");
+        const raw = await res.json();
+
+        // 명세서 기준 예시:
+        // {
+        //   id, title, description, price,
+        //   status: "ON_SALE" | "RESERVED" | "SOLD_OUT",
+        //   categoryName,
+        //   sellerId,
+        //   sellerNickname,
+        //   likeCount,
+        //   imageUrls: ["/uploads/a.jpg", ...]
+        // }
+
+        setTitle(raw.title ?? "");
+        setDetails(raw.description ?? "");
+        setPrice(
+          raw.price !== undefined && raw.price !== null
+            ? String(raw.price)
+            : ""
+        );
+
+        const code = CATEGORY_CODE_MAP[raw.categoryName] || "";
+        setCategory(code);
+
+        // 이미지: 일단 프리뷰용으로만 표시 (기존 이미지)
+        if (Array.isArray(raw.imageUrls)) {
+          const previewItems = raw.imageUrls.map((path) => {
+            const fullUrl = path?.startsWith("http")
+              ? path
+              : `${API_BASE}${path.startsWith("/") ? path : `/${path}`}`;
+            return {
+              file: null,        // 기존 파일은 없고, URL만 있는 상태
+              previewUrl: fullUrl,
+              isExisting: true,  // 기존 이미지 표시용 플래그 (선택적으로 활용 가능)
+            };
+          });
+          setImages(previewItems);
+        }
+      } catch (e) {
+        console.error(e);
+        alert("상품 정보를 불러오지 못했어요.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProduct();
+  }, [isEdit, id]);
+
+  // 이미지 업로드 (최대 5장)
   const handleImageUpload = (e) => {
     const files = Array.from(e.target.files || []);
     if (images.length + files.length > 5) {
@@ -49,15 +131,18 @@ export default function ProductPostPage() {
   const removeImage = (idx) => {
     setImages((prev) => {
       const target = prev[idx];
-      if (target) {
-        URL.revokeObjectURL(target.previewUrl); // 메모리 정리용 (선택사항)
+      if (target && target.previewUrl && !target.isExisting) {
+        // 새로 올린 이미지에 대해서만 revoke (기존 URL은 브라우저가 관리)
+        URL.revokeObjectURL(target.previewUrl);
       }
       return prev.filter((_, i) => i !== idx);
     });
   };
 
-  // 🔎 백엔드 연동 전: 폼 제출 시 서버 호출 없이 데이터만 콘솔에 찍기
-  const handleSubmit = (e) => {
+  // =========================
+  // 등록 / 수정 공통 submit
+  // =========================
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!title.trim()) {
@@ -72,7 +157,8 @@ export default function ProductPostPage() {
       alert("카테고리를 선택해 주세요.");
       return;
     }
-    if (images.length === 0) {
+    // 신규 등록일 때만 이미지 필수
+    if (!isEdit && images.length === 0) {
       alert("상품 이미지를 한 장 이상 업로드해 주세요.");
       return;
     }
@@ -80,43 +166,112 @@ export default function ProductPostPage() {
     // 숫자만 추출해서 price 숫자형으로 변환
     const numericPrice = Number(price.replace(/[^0-9]/g, "") || 0);
 
-    // 📌 실제 백엔드 연동 시에는 이 FormData를 그대로 fetch/axios에 넣으면 됨
-    const formData = new FormData();
-    formData.append("title", title.trim());
-    formData.append("description", details.trim());
-    formData.append("price", String(numericPrice));
-    formData.append("status", status);      // ON_SALE / RESERVED / SOLD_OUT
-    formData.append("categoryCode", category); // clothes / books / ...
+    // 선택된 카테고리 코드 -> 백엔드용 categoryName으로 변환
+    const categoryName = CATEGORY_NAME_MAP[category];
 
-    images.forEach((item, index) => {
-      formData.append("images", item.file);
-      // 필요하면 썸네일/순서 정보도 같이 보낼 수 있음
-      // formData.append("orderIndexList", String(index));
-    });
+    try {
+      if (isEdit) {
+        // =========================
+        // 수정 모드: PUT /api/products/{id}
+        // 이미지 수정은 명세에 없으니 텍스트 정보만 수정하는 것으로 가정
+        // =========================
+        const payload = {
+          title: title.trim(),
+          description: details.trim(),
+          price: numericPrice,
+          // 필요하면 status도 함께 전송 가능
+          // status: "ON_SALE",
+        };
 
-    // 지금은 FormData 내용을 그냥 콘솔에 구조만 찍어보기
-    const debugPayload = {
-      title: title.trim(),
-      description: details.trim(),
-      price: numericPrice,
-      status,
-      category,
-      imageCount: images.length,
-      imageFiles: images.map((it) => it.file.name),
-    };
+        console.log("✏️ [수정] 전송 payload:", payload);
 
-    console.log("📦 [백엔드 연동 전] 전송 예정 데이터 (요약):", debugPayload);
-    alert("백엔드 연동 전 상태입니다.\n콘솔에서 전송될 데이터를 확인해 보세요!");
+        const res = await fetch(`${API_BASE}/api/products/${id}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        });
+
+        if (!res.ok) throw new Error("상품 수정 실패");
+
+        alert("상품이 수정되었습니다.");
+        navigate(`/product/${id}`);
+      } else {
+        // =========================
+        // 신규 등록: POST /api/products/with-upload (FormData)
+        // =========================
+        const formData = new FormData();
+        formData.append("title", title.trim());
+        formData.append("price", String(numericPrice));
+        formData.append("description", details.trim());
+        formData.append("categoryName", categoryName);
+        formData.append("sellerId", String(MOCK_SELLER_ID));
+
+        images.forEach((item) => {
+          if (item.file) {
+            formData.append("images", item.file);
+          }
+        });
+
+        console.log("🆕 [등록] FormData 전송 예정");
+
+        const res = await fetch(
+          `${API_BASE}/api/products/with-upload`,
+          {
+            method: "POST",
+            body: formData,
+          }
+        );
+
+        if (!res.ok) throw new Error("상품 등록 실패");
+        const created = await res.json();
+
+        alert("상품이 등록되었습니다.");
+        if (created?.id) {
+          navigate(`/product/${created.id}`);
+        } else {
+          navigate("/");
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      alert(
+        isEdit
+          ? "상품 수정 중 오류가 발생했습니다."
+          : "상품 등록 중 오류가 발생했습니다."
+      );
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="app-shell">
+        <div className="app-frame">
+          <header className="post-header">
+            <button className="back-btn" onClick={() => navigate(-1)}>
+              ←
+            </button>
+            <h1>상품 {isEdit ? "수정하기" : "등록하기"}</h1>
+            <span />
+          </header>
+          <main className="post-main">
+            <div>불러오는 중...</div>
+          </main>
+          <BottomNav />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="app-shell">
       <div className="app-frame">
         <header className="post-header">
-          <button className="back-btn" onClick={() => window.history.back()}>
+          <button className="back-btn" onClick={() => navigate(-1)}>
             ←
           </button>
-          <h1>상품 등록하기</h1>
+          <h1>상품 {isEdit ? "수정하기" : "등록하기"}</h1>
           <span />
         </header>
 
@@ -129,6 +284,7 @@ export default function ProductPostPage() {
                 상품 이미지{" "}
                 <span className="limit-text">
                   <b>*</b>최대 5장까지 올릴 수 있습니다.
+                  {isEdit && " (이미지 수정은 추후 API에 맞춰 구현 예정)"}
                 </span>
               </div>
 
@@ -190,7 +346,7 @@ export default function ProductPostPage() {
               />
             </section>
 
-            {/* 카테고리 (위) */}
+            {/* 카테고리 */}
             <section className="input-section">
               <label>카테고리</label>
               <div className="select-wrap">
@@ -212,24 +368,6 @@ export default function ProductPostPage() {
               </div>
             </section>
 
-            {/* 상품현황 (아래) */}
-            <section className="input-section">
-              <label>상품현황</label>
-              <div className="status-select-wrap">
-                <select
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value)}
-                >
-                  <option value="ON_SALE">거래가능</option>
-                  <option value="RESERVED">예약중</option>
-                  <option value="SOLD_OUT">판매완료</option>
-                </select>
-                <span className="status-chevron" aria-hidden="true">
-                  ▾
-                </span>
-              </div>
-            </section>
-
             {/* 상세 내용 */}
             <section className="detail-section">
               <label>상세 내용</label>
@@ -243,7 +381,7 @@ export default function ProductPostPage() {
             </section>
 
             <button className="submit-btn" type="submit">
-              상품 등록
+              {isEdit ? "상품 수정" : "상품 등록"}
             </button>
           </form>
         </main>

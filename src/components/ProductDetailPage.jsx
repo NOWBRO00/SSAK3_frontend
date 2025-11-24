@@ -14,7 +14,7 @@ import "../styles/ProductDetailPage.css";
 import stickerReserved from "../image/status-reserved.png";
 import stickerSoldout from "../image/status-soldout.png";
 
-// 기존 이미지들
+// 데코 이미지
 import bearImg from "../image/image.png";
 import bubbleImg from "../image/image2.png";
 import logo from "../image/Group 23.png";
@@ -22,6 +22,13 @@ import logo from "../image/Group 23.png";
 // 상단 아이콘
 import backIcon from "../image/vector-33.png";
 import searchIcon from "../image/icon-search.png";
+
+// 🔹 더미 데이터
+import { MOCK_PRODUCTS } from "../data/mockProducts";
+
+// ====== 백엔드 연동용 기본 설정 ======
+const API_BASE = "http://localhost:8080"; // 명세서 기준 서버 주소
+const USER_ID = 1; // TODO: 로그인 붙으면 실제 로그인 유저 ID로 교체
 
 const KRW = (n) =>
   typeof n === "number"
@@ -37,6 +44,20 @@ const DEFAULT_AVATAR_DATA =
 
 const DEFAULT_MANNER_TEMP = 35;
 
+// 🔹 mock(status: "판매중" | "예약중" | "판매완료") → 내부 enum
+const mapStatusFromKorean = (status) => {
+  switch (status) {
+    case "판매중":
+      return "ON_SALE";
+    case "예약중":
+      return "RESERVED";
+    case "판매완료":
+      return "SOLD_OUT";
+    default:
+      return "ON_SALE";
+  }
+};
+
 export default function ProductDetailPage() {
   const { id } = useParams();
   const nav = useNavigate();
@@ -49,6 +70,7 @@ export default function ProductDetailPage() {
   const [isWish, setIsWish] = useState(false);
   const [wishCount, setWishCount] = useState(0);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isImageModalOpen, setIsImageModalOpen] = useState(false);
 
   // swipe state
   const heroRef = useRef(null);
@@ -58,40 +80,103 @@ export default function ProductDetailPage() {
 
   const main = useMemo(() => p?.images?.[idx] ?? "", [p, idx]);
 
-  // 더미 데이터 로드 (백엔드 연동 전)
+  // ====== 상품 상세 조회 (백엔드 + mock fallback) ======
   const load = useCallback(async () => {
+    if (!id) return;
     setLoading(true);
 
-    const data = {
-      id: Number(id) || 1,
-      title: "oo H 브랜드 자전거 판매 합니다",
-      description:
-        "산 이후로 몇 번 탔던 건데 5,000,000원에 가져가세요\n가격 네고 가능함\n○○ 근처 편의점에서 직거래 우대합니다",
-      price: 5000000,
-      // 🔸 실제 백엔드 enum 과 맞춘 상태값
-      status: "RESERVED", // ON_SALE | RESERVED | SOLD_OUT
-      category: { name: "가전 / 주방" },
-      images: [
-        "https://picsum.photos/800/800?1",
-        "https://picsum.photos/800/800?2",
-        "https://picsum.photos/800/800?3",
-      ],
-      seller: {
-        id: 12,
-        nickname: "닉네임12345",
-        profile_image_url: "",
-        mannerTemperature: DEFAULT_MANNER_TEMP,
-      },
-      isWishlisted: false,
-      wishCount: 0,
-      created_at: new Date().toISOString(),
-    };
+    try {
+      // 1) 백엔드 시도
+      const res = await fetch(`${API_BASE}/api/products/${id}`);
+      if (!res.ok) throw new Error("상품 조회 실패");
+      const raw = await res.json();
 
-    setP(data);
-    setIsWish(!!data.isWishlisted);
-    setWishCount(data.wishCount ?? 0);
-    setIdx(0);
-    setLoading(false);
+      // 명세서 기준 예시:
+      // {
+      //   id, title, description, price,
+      //   status: "ON_SALE" | "RESERVED" | "SOLD_OUT",
+      //   categoryName,
+      //   sellerId,
+      //   sellerNickname,
+      //   likeCount,
+      //   imageUrls: ["/uploads/a.jpg", ...],
+      //   isWishlisted (선택),
+      //   mannerTemperature (선택),
+      //   profileImageUrl (선택)
+      // }
+
+      const images = Array.isArray(raw.imageUrls)
+        ? raw.imageUrls.map((path) =>
+            path?.startsWith("http")
+              ? path
+              : `${API_BASE}${path.startsWith("/") ? path : `/${path}`}`
+          )
+        : [];
+
+      const mapped = {
+        id: raw.id,
+        title: raw.title,
+        description: raw.description,
+        price: raw.price,
+        status: raw.status, // ON_SALE | RESERVED | SOLD_OUT
+        category: { name: raw.categoryName || "기타" },
+        images,
+        seller: {
+          id: raw.sellerId,
+          nickname: raw.sellerNickname || "익명",
+          profile_image_url:
+            raw.profileImageUrl || raw.profile_image_url || "",
+          mannerTemperature:
+            raw.mannerTemperature !== undefined
+              ? raw.mannerTemperature
+              : DEFAULT_MANNER_TEMP,
+        },
+        isWishlisted: !!raw.isWishlisted,
+        wishCount: raw.likeCount ?? 0,
+        created_at: raw.createdAt,
+      };
+
+      setP(mapped);
+      setIsWish(mapped.isWishlisted);
+      setWishCount(mapped.wishCount);
+      setIdx(0);
+    } catch (e) {
+      console.error("[상품 조회 실패, mock fallback 시도]", e);
+
+      // 2) mock에서 fallback
+      const raw = MOCK_PRODUCTS.find((prod) => prod.id === Number(id));
+
+      if (!raw) {
+        setP(null);
+      } else {
+        const mapped = {
+          id: raw.id,
+          title: raw.title,
+          description: raw.description,
+          price: raw.price,
+          status: mapStatusFromKorean(raw.status),
+          category: { name: raw.category },
+          images: raw.images || [],
+          seller: {
+            id: raw.seller?.id,
+            nickname: raw.seller?.nickname ?? "익명",
+            profile_image_url: raw.seller?.profile_image_url || "",
+            mannerTemperature:
+              raw.seller?.mannerTemperature ?? DEFAULT_MANNER_TEMP,
+          },
+          isWishlisted: !!raw.isWishlisted,
+          wishCount: raw.likes ?? 0,
+          created_at: raw.createdAt,
+        };
+
+        setP(mapped);
+        setIsWish(mapped.isWishlisted);
+        setWishCount(mapped.wishCount);
+        setIdx(0);
+      }
+    } finally {
+      setLoading(false);
+    }
   }, [id]);
 
   useEffect(() => {
@@ -112,7 +197,7 @@ export default function ProductDetailPage() {
   const isReserved = p?.status === "RESERVED";
   const isSoldOut = p?.status === "SOLD_OUT";
 
-  // touch swipe
+  // ====== touch swipe ======
   const onTouchStart = (e) => {
     if (!p?.images || p.images.length < 2) return;
     const t = e.touches[0];
@@ -143,7 +228,7 @@ export default function ProductDetailPage() {
     }
   };
 
-  // mouse drag
+  // ====== mouse drag ======
   const onMouseDown = (e) => {
     if (!p?.images || p.images.length < 2) return;
     startXRef.current = e.clientX;
@@ -187,50 +272,58 @@ export default function ProductDetailPage() {
     return () => window.removeEventListener("keydown", onKey);
   }, [goPrev, goNext]);
 
-  // 찜 토글 (낙관적 업데이트)
+  // ====== 찜 토글 (명세서 기준 /api/likes) ======
   const toggleWish = useCallback(async () => {
     if (!p || wishLoading) return;
     setWishLoading(true);
     const next = !isWish;
 
-    // TODO: 실제 로그인 연동 후 userId 주입
-    const userId = 1;
-    const url = `/api/likes/${userId}/${p.id}`;
-
-    // optimistic
+    // optimistic 업데이트
     setIsWish(next);
     setWishCount((c) => Math.max(0, c + (next ? 1 : -1)));
 
     try {
-      const r = await fetch(url, {
+      const res = await fetch(`${API_BASE}/api/likes`, {
         method: next ? "POST" : "DELETE",
+        headers: { "Content-Type": "application/json" },
         credentials: "include",
+        body: JSON.stringify({
+          userId: USER_ID,
+          productId: p.id,
+        }),
       });
-      if (!r.ok) throw new Error("fail");
-    } catch {
+      if (!res.ok) throw new Error("찜 실패");
+    } catch (e) {
+      console.error(e);
       // 롤백
       setIsWish((v) => !v);
       setWishCount((c) => Math.max(0, c + (next ? -1 : 1)));
-      alert("찜에 실패했어요.");
+      alert("찜에 실패했어요. 잠시 후 다시 시도해 주세요.");
     } finally {
       setWishLoading(false);
     }
   }, [p, isWish, wishLoading]);
 
-  // 1:1 문의 (채팅방 생성 후 이동) – 실제 Chat API 명세 나오면 맞춰서 수정
+  // ====== 1:1 문의 (채팅방 생성) - /api/chatrooms ======
   const startChat = useCallback(async () => {
     if (!p) return;
     try {
-      const r = await fetch(`/api/chats`, {
+      const res = await fetch(`${API_BASE}/api/chatrooms`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ product_id: p.id }),
+        body: JSON.stringify({
+          productId: p.id,
+          buyerId: USER_ID,
+        }),
       });
-      if (!r.ok) throw new Error("chat fail");
-      const d = await r.json();
-      nav(d?.id ? `/chat/${d.id}` : "/chat");
-    } catch {
+      if (!res.ok) throw new Error("chat fail");
+      const data = await res.json();
+      const roomId = data.roomId ?? data.id;
+      if (roomId) nav(`/chat/${roomId}`);
+      else nav("/chat");
+    } catch (e) {
+      console.error(e);
       alert("채팅방 생성에 실패했어요. 잠시 후 다시 시도해 주세요.");
     }
   }, [p, nav]);
@@ -249,9 +342,32 @@ export default function ProductDetailPage() {
   const tempLevel =
     mannerTemp < 36 ? "low" : mannerTemp < 60 ? "mid" : "high";
 
-  // 바텀시트 (지금은 껍데기만)
-  const handleEditPost = () => setIsMenuOpen(false);
-  const handleDeletePost = () => setIsMenuOpen(false);
+  // ====== 바텀시트: 수정 / 삭제 ======
+  const handleEditPost = () => {
+    if (!p) return;
+    setIsMenuOpen(false);
+    nav(`/product/${p.id}/edit`);
+  };
+
+  const handleDeletePost = async () => {
+    if (!p) return;
+    if (!window.confirm("정말 이 상품을 삭제하시겠어요?")) return;
+
+    try {
+      const res = await fetch(`${API_BASE}/api/products/${p.id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("삭제 실패");
+      alert("상품이 삭제되었습니다.");
+      setIsMenuOpen(false);
+      nav("/");
+    } catch (e) {
+      console.error(e);
+      alert("상품 삭제 중 오류가 발생했습니다.");
+      setIsMenuOpen(false);
+    }
+  };
 
   if (loading) return <div>Loading...</div>;
   if (!p) return <div>상품이 없어요.</div>;
@@ -281,9 +397,9 @@ export default function ProductDetailPage() {
               src={main}
               alt={p.title ?? "상품"}
               draggable={false}
+              onClick={() => setIsImageModalOpen(true)}
             />
 
-            {/* 상태 스티커 - 중앙, 애니메이션 */}
             {isReserved && (
               <img
                 className="ss-status-sticker"
@@ -303,7 +419,6 @@ export default function ProductDetailPage() {
           <div className="ss-hero__fallback">이미지가 없어요</div>
         )}
 
-        {/* 좌우 버튼 */}
         {p.images?.length > 1 && (
           <>
             <button
@@ -386,7 +501,6 @@ export default function ProductDetailPage() {
               1:1 문의하기
             </button>
 
-            {/* 찜 버튼 */}
             <button
               className={`ss-like ${isWish ? "is-on" : ""}`}
               onClick={toggleWish}
@@ -428,6 +542,59 @@ export default function ProductDetailPage() {
                 닫기
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* 이미지 크게 보기 모달 */}
+      {isImageModalOpen && (
+        <div
+          className="ss-image-modal-backdrop"
+          onClick={() => setIsImageModalOpen(false)}
+        >
+          <div
+            className="ss-image-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              className="ss-image-modal__close"
+              onClick={() => setIsImageModalOpen(false)}
+            >
+              ✕
+            </button>
+
+            {main && (
+              <img
+                src={main}
+                alt={p.title ?? "상품 크게 보기"}
+                className="ss-image-modal__img"
+              />
+            )}
+
+            {p.images?.length > 1 && (
+              <div className="ss-image-modal__nav">
+                <button
+                  type="button"
+                  onClick={goPrev}
+                  disabled={idx === 0}
+                  className="ss-image-modal__nav-btn"
+                >
+                  ‹
+                </button>
+                <span className="ss-image-modal__index">
+                  {idx + 1} / {p.images.length}
+                </span>
+                <button
+                  type="button"
+                  onClick={goNext}
+                  disabled={idx === p.images.length - 1}
+                  className="ss-image-modal__nav-btn"
+                >
+                  ›
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
