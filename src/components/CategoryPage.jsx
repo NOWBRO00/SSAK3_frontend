@@ -1,3 +1,5 @@
+// src/pages/CategoryPage.jsx
+
 import React, { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import logo from "../image/Group 23.png";
@@ -5,7 +7,7 @@ import backIcon from "../image/vector-33.png";
 import "../styles/CategoryPage.css";
 import BottomNav from "./BottomNav";
 
-// ★ 상태 스티커 이미지 추가
+// 상태 스티커 이미지
 import stickerReserved from "../image/status-reserved.png";
 import stickerSoldout from "../image/status-soldout.png";
 
@@ -33,9 +35,9 @@ const dummyItemsByCat = (cat) => [
     price: 52800,
     seller: "닉네임12345",
     liked: false,
-    likes: 11,
+    likes: 0, // 처음엔 0에서 시작
     img: "https://via.placeholder.com/120x120?text=A",
-    status: "예약중", // ★ 테스트용 상태
+    status: "예약중",
   },
   {
     id: 2,
@@ -43,7 +45,7 @@ const dummyItemsByCat = (cat) => [
     price: 52800,
     seller: "닉네임12345",
     liked: false,
-    likes: 11,
+    likes: 0,
     img: "https://via.placeholder.com/120x120?text=B",
     status: "판매완료",
   },
@@ -53,7 +55,7 @@ const dummyItemsByCat = (cat) => [
     price: 52800,
     seller: "닉네임12345",
     liked: false,
-    likes: 11,
+    likes: 0,
     img: "https://via.placeholder.com/120x120?text=C",
     status: "ON_SALE",
   },
@@ -98,7 +100,7 @@ export default function CategoryPage() {
         {/* 상단바 */}
         <header className="cat-topbar">
           <button className="icon-btn" onClick={() => nav(-1)}>
-            <img src={backIcon} alt="" />
+            <img src={backIcon} alt="back" />
           </button>
 
           <img className="cat-logo" src={logo} alt="logo" />
@@ -144,9 +146,12 @@ export default function CategoryPage() {
         {/* 리스트 */}
         <main className="cat-list">
           {items.map((p) => (
-            <article key={p.id} className="cat-card">
-              
-              {/* ★ 썸네일 + 흑백 */}
+            <article
+              key={p.id}
+              className="cat-card"
+              onClick={() => nav(`/product/${p.id}`)} // ✅ 카드 클릭 시 상세 이동
+            >
+              {/* 썸네일 + 흑백 */}
               <div className="cat-thumb-wrap">
                 <img
                   className={
@@ -158,7 +163,7 @@ export default function CategoryPage() {
                   alt={p.title}
                 />
 
-                {/* ★ 상태 스티커 */}
+                {/* 상태 스티커 (중앙 정렬) */}
                 {p.status === "예약중" && (
                   <img
                     className="cat-status-sticker"
@@ -189,7 +194,10 @@ export default function CategoryPage() {
               {/* 찜 버튼 */}
               <button
                 className={"like-btn" + (p.liked ? " on" : "")}
-                onClick={() => toggleLike(p.id)}
+                onClick={(e) => {
+                  e.stopPropagation(); // ✅ 카드 클릭으로 상세 이동되는 것 막기
+                  toggleLike(p.id);
+                }}
               >
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
                   <path
@@ -213,16 +221,28 @@ export default function CategoryPage() {
         {sortOpen && (
           <div className="sheet-backdrop" onClick={() => setSortOpen(false)}>
             <div className="bottom-sheet" onClick={(e) => e.stopPropagation()}>
-              <button className="sheet-item" onClick={() => onSelectSort("인기순")}>
+              <button
+                className="sheet-item"
+                onClick={() => onSelectSort("인기순")}
+              >
                 인기순
               </button>
-              <button className="sheet-item" onClick={() => onSelectSort("최신순")}>
+              <button
+                className="sheet-item"
+                onClick={() => onSelectSort("최신순")}
+              >
                 최신순
               </button>
-              <button className="sheet-item" onClick={() => onSelectSort("거래 가능")}>
+              <button
+                className="sheet-item"
+                onClick={() => onSelectSort("거래 가능")}
+              >
                 거래 가능
               </button>
-              <button className="sheet-item close" onClick={() => setSortOpen(false)}>
+              <button
+                className="sheet-item close"
+                onClick={() => setSortOpen(false)}
+              >
                 닫기
               </button>
             </div>

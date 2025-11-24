@@ -32,7 +32,7 @@ export default function SearchPage() {
   const [sortOpen, setSortOpen] = useState(false);
   const [sortType, setSortType] = useState("인기순");
 
-  // ✅ status: "판매중" | "예약중" | "판매완료"  (다른 페이지와 통일)
+  // ✅ status: "판매중" | "예약중" | "판매완료"
   const [products, setProducts] = useState([
     {
       id: 1,
@@ -71,7 +71,7 @@ export default function SearchPage() {
 
   const handleInputChange = (e) => setSearchTerm(e.target.value);
 
-  // 공통 검색 실행 함수 (폼 제출 + 최근검색어 칩 클릭 둘 다 사용)
+  // 공통 검색 실행 함수
   const runSearch = (raw) => {
     const q = raw.trim();
     if (!q) return;
@@ -122,14 +122,13 @@ export default function SearchPage() {
   const visibleProducts = useMemo(() => {
     let base = products;
 
-    // 검색 키워드가 있으면 제목에 포함된 것만
     if (keyword.trim()) {
       const lower = keyword.toLowerCase();
       base = base.filter((p) => p.title.toLowerCase().includes(lower));
     }
 
     if (sortType === "거래 가능") {
-      // ✅ 거래 가능 → "판매중"만 보이게 (예약중/판매완료 제외)
+      // 거래 가능 → "판매중"만
       return base.filter((p) => p.status === "판매중");
     }
 
@@ -266,18 +265,18 @@ export default function SearchPage() {
               className="sp-card"
               onClick={() => navigate(`/product/${p.id}`)}
             >
-              <div className="thumb">
+              {/* 썸네일 + 흑백 + 상태 스티커 (카테고리와 동일 구조) */}
+              <div className="sp-thumb-wrap">
                 <img
                   src={p.img}
                   alt={p.title}
                   className={
                     p.status === "예약중" || p.status === "판매완료"
-                      ? "gray"
-                      : ""
+                      ? "sp-thumb-img gray"
+                      : "sp-thumb-img"
                   }
                 />
 
-                {/* 예약중 / 판매완료 스티커 */}
                 {p.status === "예약중" && (
                   <img
                     src={stickerReserved}
@@ -295,6 +294,7 @@ export default function SearchPage() {
                 )}
               </div>
 
+              {/* 정보 영역 (카테고리 / 제목 / 가격 / 닉네임) */}
               <div className="info">
                 <div className="category">의류</div>
                 <h3 className="title">{p.title}</h3>
@@ -302,32 +302,29 @@ export default function SearchPage() {
 
                 <div className="meta">
                   <span className="seller">{p.seller}</span>
-
-                  <button
-                    className={"like-btn" + (p.liked ? " liked" : "")}
-                    onClick={(e) => {
-                      e.stopPropagation(); // 카드 클릭(상세 이동) 막기
-                      toggleLike(p.id);
-                    }}
-                    type="button"
-                    aria-label="찜"
-                  >
-                    <svg width="18" height="18" viewBox="0 0 24 24">
-                      <path
-                        d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 1 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
-                        fill={p.liked ? "#f04e4e" : "none"}
-                        stroke={p.liked ? "#f04e4e" : "#7a6f6f"}
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                    {p.likes > 0 && (
-                      <span className="like-cnt">{p.likes}</span>
-                    )}
-                  </button>
                 </div>
               </div>
+
+              {/* 찜 버튼 – 카테고리 페이지처럼 우측에 분리 */}
+              <button
+                className={"like-btn" + (p.liked ? " liked" : "")}
+                onClick={(e) => {
+                  e.stopPropagation(); // 상세 이동 막기
+                  toggleLike(p.id);
+                }}
+                type="button"
+                aria-label="찜"
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M12.1 20.1S4 15 4 9.9A4.9 4.9 0 0 1 8.9 5c2 0 3 1 3.2 1.6C12.3 6 13.3 5 15.3 5A4.9 4.9 0 0 1 20.2 9.9c0 5.1-8.1 10.2-8.1 10.2Z"
+                    stroke={p.liked ? "#e85b5b" : "#8d8585"}
+                    strokeWidth="1.6"
+                    fill={p.liked ? "#e85b5b" : "none"}
+                  />
+                </svg>
+                <span className="like-num">{p.likes}</span>
+              </button>
             </article>
           ))}
         </div>

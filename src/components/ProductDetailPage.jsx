@@ -1,3 +1,4 @@
+// src/components/ProductDetailPage.jsx
 import React, {
   useCallback,
   useEffect,
@@ -57,7 +58,7 @@ export default function ProductDetailPage() {
 
   const main = useMemo(() => p?.images?.[idx] ?? "", [p, idx]);
 
-  // 더미 데이터 로드
+  // 더미 데이터 로드 (백엔드 연동 전)
   const load = useCallback(async () => {
     setLoading(true);
 
@@ -67,7 +68,8 @@ export default function ProductDetailPage() {
       description:
         "산 이후로 몇 번 탔던 건데 5,000,000원에 가져가세요\n가격 네고 가능함\n○○ 근처 편의점에서 직거래 우대합니다",
       price: 5000000,
-      status: "예약중", // "예약중" | "판매완료" | 그외는 판매중
+      // 🔸 실제 백엔드 enum 과 맞춘 상태값
+      status: "RESERVED", // ON_SALE | RESERVED | SOLD_OUT
       category: { name: "가전 / 주방" },
       images: [
         "https://picsum.photos/800/800?1",
@@ -106,6 +108,10 @@ export default function ProductDetailPage() {
     setIdx((i) => Math.min(p.images.length - 1, i + 1));
   }, [p]);
 
+  // 상태 플래그 (백엔드 enum 기준)
+  const isReserved = p?.status === "RESERVED";
+  const isSoldOut = p?.status === "SOLD_OUT";
+
   // touch swipe
   const onTouchStart = (e) => {
     if (!p?.images || p.images.length < 2) return;
@@ -121,7 +127,7 @@ export default function ProductDetailPage() {
     const t = e.touches[0];
     const dx = t.clientX - startXRef.current;
     const dy = Math.abs(t.clientY - startYRef.current);
-    if (dy > Math.abs(dx)) return;
+    if (dy > Math.abs(dx)) return; // 세로 스크롤 우선
   };
 
   const onTouchEnd = (e) => {
@@ -181,34 +187,37 @@ export default function ProductDetailPage() {
     return () => window.removeEventListener("keydown", onKey);
   }, [goPrev, goNext]);
 
-  // 찜 토글
+  // 찜 토글 (낙관적 업데이트)
   const toggleWish = useCallback(async () => {
     if (!p || wishLoading) return;
     setWishLoading(true);
     const next = !isWish;
 
+    // TODO: 실제 로그인 연동 후 userId 주입
+    const userId = 1;
+    const url = `/api/likes/${userId}/${p.id}`;
+
     // optimistic
     setIsWish(next);
-    setWishCount((c) => c + (next ? 1 : -1));
+    setWishCount((c) => Math.max(0, c + (next ? 1 : -1)));
 
     try {
-      const r = await fetch(`/api/products/${p.id}/wishlist`, {
+      const r = await fetch(url, {
         method: next ? "POST" : "DELETE",
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
       });
       if (!r.ok) throw new Error("fail");
     } catch {
       // 롤백
       setIsWish((v) => !v);
-      setWishCount((c) => c + (next ? -1 : 1));
+      setWishCount((c) => Math.max(0, c + (next ? -1 : 1)));
       alert("찜에 실패했어요.");
     } finally {
       setWishLoading(false);
     }
   }, [p, isWish, wishLoading]);
 
-  // 1:1 문의 (채팅방 생성 후 이동)
+  // 1:1 문의 (채팅방 생성 후 이동) – 실제 Chat API 명세 나오면 맞춰서 수정
   const startChat = useCallback(async () => {
     if (!p) return;
     try {
@@ -249,7 +258,6 @@ export default function ProductDetailPage() {
 
   return (
     <div className="ss-wrap">
-      {/* ✅ onSearch 추가해서 넘김 */}
       <Header onBack={() => nav(-1)} onSearch={() => nav("/search")} />
 
       {/* 이미지 + 상태 스티커 */}
@@ -268,46 +276,26 @@ export default function ProductDetailPage() {
           <>
             <img
               className={`ss-hero__img ${
-                p.status === "예약중" || p.status === "판매완료"
-                  ? "ss-img-gray"
-                  : ""
+                isReserved || isSoldOut ? "ss-img-gray" : ""
               }`}
               src={main}
               alt={p.title ?? "상품"}
               draggable={false}
             />
 
-            {/* 상태 스티커 - 중앙, 조금 더 크게 (inline style로 강제) */}
-            {p.status === "예약중" && (
+            {/* 상태 스티커 - 중앙, 애니메이션 */}
+            {isReserved && (
               <img
                 className="ss-status-sticker"
                 src={stickerReserved}
                 alt="예약중"
-                style={{
-                  position: "absolute",
-                  top: "50%",
-                  left: "50%",
-                  transform: "translate(-50%, -50%)",
-                  width: "140px",
-                  pointerEvents: "none",
-                  zIndex: 5,
-                }}
               />
             )}
-            {p.status === "판매완료" && (
+            {isSoldOut && (
               <img
                 className="ss-status-sticker"
                 src={stickerSoldout}
                 alt="판매완료"
-                style={{
-                  position: "absolute",
-                  top: "50%",
-                  left: "50%",
-                  transform: "translate(-50%, -50%)",
-                  width: "140px",
-                  pointerEvents: "none",
-                  zIndex: 5,
-                }}
               />
             )}
           </>
@@ -393,12 +381,12 @@ export default function ProductDetailPage() {
             <button
               className="ss-cta"
               onClick={startChat}
-              disabled={p.status === "판매완료"}
+              disabled={isSoldOut}
             >
               1:1 문의하기
             </button>
 
-            {/* 찜 버튼 - MyPage와 동일 SVG 하트 사용 */}
+            {/* 찜 버튼 */}
             <button
               className={`ss-like ${isWish ? "is-on" : ""}`}
               onClick={toggleWish}
@@ -448,7 +436,6 @@ export default function ProductDetailPage() {
 }
 
 /* ===== 상단 헤더 ===== */
-// ✅ onSearch 추가
 function Header({ onBack, onSearch }) {
   return (
     <header className="ss-appbar">
@@ -475,7 +462,7 @@ function DotsIcon() {
   );
 }
 
-/* MyPage와 동일한 하트 SVG */
+/* 하트 SVG */
 function HeartIcon({ filled }) {
   return filled ? (
     <svg

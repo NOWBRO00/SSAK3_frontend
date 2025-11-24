@@ -31,11 +31,12 @@ export default function MainPage() {
   const nav = useNavigate();
   const userName = "주예원";
 
+  // ✅ CATEGORY_MAP 과 맞춘 카테고리 id
   const categories = [
-    { id: "book", label: "도서 / 문구", icon: iconBook },
-    { id: "cloth", label: "의류", icon: iconCloth },
-    { id: "kitchen", label: "가전 / 주방", icon: iconKitchen },
-    { id: "etc", label: "도우미 / 기타", icon: iconEtc },
+    { id: "books", label: "도서 / 문구", icon: iconBook },
+    { id: "clothes", label: "의류", icon: iconCloth },
+    { id: "appliances", label: "가전 / 주방", icon: iconKitchen },
+    { id: "helper", label: "도우미 / 기타", icon: iconEtc },
   ];
 
   // ✅ status: "판매중" | "예약중" | "판매완료"

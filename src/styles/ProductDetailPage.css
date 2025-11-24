@@ -283,7 +283,7 @@
   color: #666;
 }
 
-/* 하트 SVG (MyPage 스타일) */
+/* 하트 SVG */
 .ss-heart-icon-svg {
   width: 24px;
   height: 24px;
@@ -394,7 +394,7 @@ button:focus-visible {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 140px; /* 마이페이지보다 살짝 크게 */
+  width: 140px;
   z-index: 5;
   pointer-events: none;
 

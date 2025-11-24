@@ -1,37 +1,93 @@
-/* ===== 기본 리셋 & 배경 ===== */
-html, body, #root {
-  height: 100%;
-}
-body {
-  margin: 0;
-  background: #f5f5f5; /* 앱 바깥 배경 */
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  font-family: "Pretendard", system-ui, -apple-system, Segoe UI, Roboto, Noto Sans, "Apple SD Gothic Neo", "맑은 고딕", sans-serif;
+/* 박스 사이즈 통일 */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
-/* ===== 공통 프레임 ===== */
+/* 기본 높이 & 배경 */
+html,
+body,
+#root {
+  height: 100%;
+}
+
+/* 브라우저 기본 스타일 리셋 + 흔들림 방지 */
+html,
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden; /* 가로 스크롤 완전 차단 */
+  background: #f5f5f5; /* 앱 바깥 배경 */
+
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  font-family: "Pretendard", system-ui, -apple-system, Segoe UI, Roboto,
+    Noto Sans, "Apple SD Gothic Neo", "맑은 고딕", sans-serif;
+
+  /* 스크롤 튐/오버스크롤 방지 */
+  overscroll-behavior-x: none;
+  overscroll-behavior-y: none;
+}
+
+/* 모바일 탭 하이라이트 제거 (파란/회색 깜빡임 제거) */
+body {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* =========================================================
+   App Frame (전체 앱 공통 래퍼)
+   - 필요하면 App.js에서 .app-shell / .app-frame 을 한 번 감싸서 사용
+   ========================================================= */
+
 /* 앱 전체를 중앙에 고정시키는 래퍼 */
 .app-shell {
   min-height: 100vh;
   display: flex;
   justify-content: center;
+  align-items: stretch; /* 세로는 꽉 차게 */
 }
 
-/* 실제 앱 화면(모바일 390px) */
+/* 실제 앱 화면(모바일 390px 고정폭) */
 .app-frame {
   position: relative;
   width: 100%;
-  max-width: 390px;
+  max-width: 390px;    /* iPhone 12 사이즈 기준 */
   min-height: 100vh;
   background: #fafafa;
-  box-shadow: 0 0 0 1px rgba(0,0,0,0.04);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.04);
   display: flex;
   flex-direction: column;
+  overflow-x: hidden;   /* 내부에서도 가로 스크롤 방지 */
 }
 
 /* 페이지 본문이 하단 네비게이션에 가리지 않도록 기본 여백 권장 */
 .page-main {
   padding-bottom: 108px; /* 네비 높이(72) + 여유 */
   box-sizing: border-box;
+}
+
+/* =========================================================
+   Optional: 공통 유틸 (필요 시 사용)
+   ========================================================= */
+
+/* 스크롤바가 생겨도 레이아웃 튀지 않도록 기본 세팅 (브라우저별로 다를 수 있음) */
+.app-scroll-y {
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* 이미지 드래그로 인한 어색한 효과 방지 (필요할 때 클래스에 붙여서 사용) */
+.img-no-drag {
+  -webkit-user-drag: none;
+  user-select: none;
+}
+
+/* 버튼 포커스 표시 공통 (접근성) */
+button:focus-visible {
+  outline: 2px solid #946cff;
+  outline-offset: 2px;
 }

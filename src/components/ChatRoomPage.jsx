@@ -1,4 +1,11 @@
-import React, { useMemo, useEffect, useRef, useState } from "react";
+// src/components/ChatRoomPage.jsx
+import React, {
+  useMemo,
+  useEffect,
+  useRef,
+  useState,
+  useCallback,
+} from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import BottomNav from "./BottomNav";
 import "../styles/ChatRoomPage.css";
@@ -28,7 +35,6 @@ function formatDateDivider(dateLike) {
 }
 
 export default function ChatRoomPage() {
-  // ✅ /chat/:id 경로 지원
   const { id } = useParams();
   const roomId = id || "temp";
 
@@ -72,8 +78,13 @@ export default function ChatRoomPage() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
 
-  // 첨부 시트
+  // 첨부/카메라 시트 & 모달
   const [attachOpen, setAttachOpen] = useState(false);
+  const [cameraOpen, setCameraOpen] = useState(false);
+
+  // 이미지 전체 보기
+  const [imageViewerUrl, setImageViewerUrl] = useState(null);
+
   const openAttachSheet = () => setAttachOpen(true);
   const triggerGallery = () => {
     setAttachOpen(false);
@@ -81,13 +92,12 @@ export default function ChatRoomPage() {
   };
   const triggerCamera = () => {
     setAttachOpen(false);
-    cameraInputRef.current?.click();
+    setCameraOpen(true);
   };
 
   const listRef = useRef(null);
   const bottomRef = useRef(null);
   const fileInputRef = useRef(null);
-  const cameraInputRef = useRef(null);
 
   // 새 메시지 추가 시 자동 스크롤
   const scrollToBottom = (smooth = true) => {
@@ -166,7 +176,40 @@ export default function ChatRoomPage() {
     }
   };
 
-  const onCameraCapture = (e) => onFilesSelected(e);
+  // WebRTC 카메라에서 한 장 촬영되었을 때
+  const handleCameraCaptured = useCallback(
+    (blob) => {
+      if (!blob) return;
+
+      const file = new File([blob], `camera_${Date.now()}.jpg`, {
+        type: blob.type || "image/jpeg",
+      });
+      const url = URL.createObjectURL(file);
+
+      const tempId = "tmp_cam_" + Date.now();
+      const optimistic = {
+        id: tempId,
+        tempId,
+        roomId,
+        senderId: "me",
+        type: "image",
+        media: { url },
+        createdAt: new Date().toISOString(),
+        sendStatus: "sending",
+      };
+      setMessages((prev) => [...prev, optimistic]);
+
+      // TODO: 실제 서버 업로드 API로 교체
+      setTimeout(() => {
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === tempId ? { ...m, sendStatus: "sent" } : m
+          )
+        );
+      }, 500);
+    },
+    [roomId]
+  );
 
   const rendered = useMemo(() => {
     if (!messages.length) return [];
@@ -209,7 +252,7 @@ export default function ChatRoomPage() {
           </button>
         </header>
 
-        {/* 상품 카드 👉 클릭 시 상세페이지 이동만 추가 */}
+        {/* 상품 카드 */}
         <section
           className="product-card"
           onClick={() => {
@@ -236,7 +279,7 @@ export default function ChatRoomPage() {
           </div>
         </section>
 
-        {/* 메시지 목록 (여기만 스크롤) */}
+        {/* 메시지 목록 */}
         <main
           className="room-main"
           ref={listRef}
@@ -252,19 +295,24 @@ export default function ChatRoomPage() {
                 {formatDateDivider(row.date)}
               </div>
             ) : (
-              <MessageBubble key={row.id} meId="me" msg={row.data} />
+              <MessageBubble
+                key={row.id}
+                meId="me"
+                msg={row.data}
+                onImageClick={(url) => setImageViewerUrl(url)}
+              />
             )
           )}
           <div ref={bottomRef} />
         </main>
 
-        {/* 경고 배너 (고정) */}
+        {/* 경고 배너 */}
         <div className="safe-banner">
           [중고 거래 채팅 시 외부 채널 유도 및 개인정보 요구 금지] 매너는
           기본, 건강한 거래 문화를 약속해요.
         </div>
 
-        {/* 입력 바 (고정) */}
+        {/* 입력 바 */}
         <footer className="input-bar">
           {/* 갤러리 선택 */}
           <input
@@ -273,15 +321,6 @@ export default function ChatRoomPage() {
             accept="image/*,video/*"
             multiple
             onChange={onFilesSelected}
-            style={{ display: "none" }}
-          />
-          {/* 실제 카메라 촬영 */}
-          <input
-            ref={cameraInputRef}
-            type="file"
-            accept="image/*,video/*"
-            capture="environment"
-            onChange={onCameraCapture}
             style={{ display: "none" }}
           />
 
@@ -298,7 +337,7 @@ export default function ChatRoomPage() {
                 }
               }}
             />
-            {/* 입력창 안쪽 카메라 아이콘 -> 시트 열기 */}
+            {/* 입력창 안쪽 카메라 아이콘 -> 첨부 시트 열기 */}
             <button
               className="icon-btn inside"
               aria-label="카메라"
@@ -341,7 +380,7 @@ export default function ChatRoomPage() {
                 </button>
                 <div className="sheet-divider" />
                 <button className="sheet-item" onClick={triggerCamera}>
-                  카메라
+                  카메라로 촬영
                 </button>
               </div>
               <button
@@ -354,7 +393,7 @@ export default function ChatRoomPage() {
           </div>
         )}
 
-        {/* ⋮ 메뉴 (필요시 확장) */}
+        {/* ⋮ 메뉴 */}
         {menuOpen && (
           <div
             className="sheet-backdrop"
@@ -382,19 +421,56 @@ export default function ChatRoomPage() {
             </div>
           </div>
         )}
+
+        {/* WebRTC 카메라 모달 */}
+        {cameraOpen && (
+          <CameraModal
+            onClose={() => setCameraOpen(false)}
+            onCapture={(blob) => {
+              setCameraOpen(false);
+              handleCameraCaptured(blob);
+            }}
+          />
+        )}
+
+        {/* 이미지 전체 보기 모달 */}
+        {imageViewerUrl && (
+          <div
+            className="img-viewer-backdrop"
+            onClick={() => setImageViewerUrl(null)}
+          >
+            <img
+              className="img-viewer-img"
+              src={imageViewerUrl}
+              alt=""
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-function MessageBubble({ meId, msg }) {
+function MessageBubble({ meId, msg, onImageClick }) {
   const mine = msg.senderId === meId;
+  const handleImageClick = () => {
+    if (msg.media?.url && onImageClick) {
+      onImageClick(msg.media.url);
+    }
+  };
+
   return (
     <div className={"msg-row " + (mine ? "mine" : "peer")}>
       <div className={"bubble " + msg.type}>
         {msg.type === "text" && <span>{msg.text}</span>}
         {msg.type === "image" && (
-          <img className="media" src={msg.media?.url} alt="" />
+          <img
+            className="media"
+            src={msg.media?.url}
+            alt=""
+            onClick={handleImageClick}
+          />
         )}
         {msg.type === "video" && (
           <video
@@ -416,6 +492,136 @@ function MessageBubble({ meId, msg }) {
         {mine && msg.sendStatus === "failed" && (
           <span className="read fail">실패</span>
         )}
+      </div>
+    </div>
+  );
+}
+
+/* ===== WebRTC 카메라 모달 ===== */
+function CameraModal({ onClose, onCapture }) {
+  const videoRef = useRef(null);
+  const streamRef = useRef(null);
+  const [ready, setReady] = useState(false);
+  const [shotUrl, setShotUrl] = useState(null);
+  const shotBlobRef = useRef(null);
+
+  useEffect(() => {
+    async function start() {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        alert("이 브라우저에서는 카메라를 사용할 수 없어요.");
+        onClose();
+        return;
+      }
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "environment" },
+          audio: false,
+        });
+        streamRef.current = stream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          await videoRef.current.play();
+        }
+        setReady(true);
+      } catch (err) {
+        console.error(err);
+        alert("카메라 접근에 실패했어요.");
+        onClose();
+      }
+    }
+    start();
+
+    return () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((t) => t.stop());
+      }
+      if (shotUrl) {
+        URL.revokeObjectURL(shotUrl);
+      }
+    };
+  }, [onClose, shotUrl]);
+
+  const takeShot = () => {
+    if (!videoRef.current) return;
+    const video = videoRef.current;
+    const w = video.videoWidth || 640;
+    const h = video.videoHeight || 480;
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(video, 0, 0, w, h);
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) return;
+        shotBlobRef.current = blob;
+        const url = URL.createObjectURL(blob);
+        if (shotUrl) URL.revokeObjectURL(shotUrl);
+        setShotUrl(url);
+      },
+      "image/jpeg",
+      0.9
+    );
+  };
+
+  const handleUseShot = () => {
+    if (shotBlobRef.current && onCapture) {
+      onCapture(shotBlobRef.current);
+    }
+  };
+
+  const handleRetry = () => {
+    if (shotUrl) {
+      URL.revokeObjectURL(shotUrl);
+    }
+    shotBlobRef.current = null;
+    setShotUrl(null);
+  };
+
+  return (
+    <div className="cam-backdrop" onClick={onClose}>
+      <div
+        className="cam-modal"
+        onClick={(e) => {
+          e.stopPropagation();
+        }}
+      >
+        <div className="cam-video-wrap">
+          {!shotUrl ? (
+            <video
+              ref={videoRef}
+              className="cam-video"
+              autoPlay
+              playsInline
+              muted
+            />
+          ) : (
+            <img className="cam-shot" src={shotUrl} alt="preview" />
+          )}
+          {!ready && <div className="cam-loading">카메라 여는 중...</div>}
+        </div>
+
+        <div className="cam-actions">
+          {!shotUrl ? (
+            <>
+              <button className="cam-btn" onClick={onClose}>
+                닫기
+              </button>
+              <button className="cam-btn primary" onClick={takeShot}>
+                촬영
+              </button>
+            </>
+          ) : (
+            <>
+              <button className="cam-btn" onClick={handleRetry}>
+                다시 찍기
+              </button>
+              <button className="cam-btn primary" onClick={handleUseShot}>
+                이 사진 사용
+              </button>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
