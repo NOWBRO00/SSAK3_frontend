@@ -229,3 +229,4 @@ export const MOCK_PRODUCTS = [
     tags: ["search", "mypage"],
   },
 ];
+

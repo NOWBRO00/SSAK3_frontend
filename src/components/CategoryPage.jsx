@@ -15,32 +15,15 @@ import stickerSoldout from "../image/status-soldout.png";
 // 🔹 로딩 이미지
 import loaderImg from "../image/loader.png";
 
-const API_BASE = "http://localhost:8080";
+// 🔹 공통 상품/카테고리 유틸
+//   - resolveCategoryFromParam: URL 파라미터 → { code, id, label }
+//   - buildImageUrl: /uploads/... → 절대 URL
+import { resolveCategoryFromParam, buildImageUrl } from "../lib/products";
 
-/** 공통 카테고리 라벨 */
-const CATEGORY_LABELS = {
-  clothes: "의류",
-  books: "도서 / 문구",
-  appliances: "가전 / 주방",
-  helper: "도우미 / 기타",
-};
+// 🔹 공통 API 함수
+import { api } from "../lib/api";
 
-/** 영어 key / 한글 파라미터 모두 매핑 */
-const CATEGORY_MAP = {
-  clothes: CATEGORY_LABELS.clothes,
-  books: CATEGORY_LABELS.books,
-  appliances: CATEGORY_LABELS.appliances,
-  helper: CATEGORY_LABELS.helper,
-
-  [CATEGORY_LABELS.clothes]: CATEGORY_LABELS.clothes,
-  [CATEGORY_LABELS.books]: CATEGORY_LABELS.books,
-  [CATEGORY_LABELS.appliances]: CATEGORY_LABELS.appliances,
-  [CATEGORY_LABELS.helper]: CATEGORY_LABELS.helper,
-};
-
-const FALLBACK_CATEGORY = CATEGORY_LABELS.clothes;
-
-/** 한글 → 내부 enum 변환 */
+/** mock 상태(한글) → enum 변환 */
 const mapStatusFromKorean = (status) => {
   switch (status) {
     case "판매중":
@@ -54,33 +37,51 @@ const mapStatusFromKorean = (status) => {
   }
 };
 
+/** 백엔드/모크 섞여도 enum으로 정규화 */
+const normalizeStatus = (status) => {
+  if (!status) return "ON_SALE";
+  if (status === "ON_SALE" || status === "RESERVED" || status === "SOLD_OUT") {
+    return status;
+  }
+  // mock에서 오는 한글 상태 대응
+  return mapStatusFromKorean(status);
+};
+
 export default function CategoryPage() {
   const nav = useNavigate();
   const { name } = useParams();
 
-  /** URL 파라미터 → 카테고리 라벨 */
-  const categoryName =
-    CATEGORY_MAP[decodeURIComponent(name || FALLBACK_CATEGORY)] ||
-    FALLBACK_CATEGORY;
+  /**
+   * URL 파라미터 → 카테고리 정보
+   * - /category/clothes      → { code: "clothes", id: 1, label: "의류" }
+   * - /category/books        → { code: "books", id: 2, label: "도서 / 문구" }
+   * - /category/appliances   → { code: "appliances", id: 3, label: "가전 / 주방" }
+   * - /category/helper       → { code: "helper", id: 4, label: "도우미 / 기타" }
+   *
+   * ※ resolveCategoryFromParam 안에서 1~4 매핑을 해주고 있다고 가정
+   */
+  const { id: rawCategoryId, label: categoryName } =
+    resolveCategoryFromParam(name);
+
+  // 혹시 undefined가 올 수 있으니 숫자로 한 번 더 안전하게 변환
+  const categoryId = Number(rawCategoryId || 1);
 
   const [items, setItems] = useState([]);
   const [sortOpen, setSortOpen] = useState(false);
   const [sortType, setSortType] = useState("인기순");
   const [loading, setLoading] = useState(true);
 
-  /** 🔥 백엔드 + mock fallback 로직 */
+  /** 🔥 카테고리별 상품 조회 (백엔드 + mock fallback) */
   const load = useCallback(async () => {
     setLoading(true);
 
     try {
-      const res = await fetch(
-        `${API_BASE}/api/products?category=${encodeURIComponent(categoryName)}`
-      );
+      // ✅ 핵심: 백엔드에서 카테고리 ID(1~4)로 바로 조회
+      //    GET /api/products/category/{categoryId}
+      console.log("[CategoryPage] 요청 카테고리:", categoryId, categoryName);
 
-      if (!res.ok) throw new Error("카테고리 상품 조회 실패");
-      const rawList = await res.json();
+      const rawList = await api(`/api/products/category/${categoryId}`);
 
-      // 명세서 기준 매핑
       const mapped = rawList.map((raw) => ({
         id: raw.id,
         title: raw.title,
@@ -89,17 +90,16 @@ export default function CategoryPage() {
         likes: raw.likeCount ?? 0,
         liked: !!raw.isWishlisted,
         img: Array.isArray(raw.imageUrls)
-          ? raw.imageUrls[0]?.startsWith("http")
-            ? raw.imageUrls[0]
-            : `${API_BASE}${raw.imageUrls[0]}`
+          ? buildImageUrl(raw.imageUrls[0])
           : "",
-        status: raw.status, // ON_SALE / RESERVED / SOLD_OUT
+        status: normalizeStatus(raw.status), // ON_SALE / RESERVED / SOLD_OUT
       }));
 
       setItems(mapped);
     } catch (e) {
-      console.warn("[백엔드 실패 → mock fallback]", e);
+      console.warn("[카테고리 리스트] 백엔드 실패 → mock fallback", e);
 
+      // 🔹 mock: categoryName(한글) 기준으로 필터
       const filtered = MOCK_PRODUCTS.filter(
         (p) => p.category === categoryName
       ).map((raw) => ({
@@ -110,14 +110,14 @@ export default function CategoryPage() {
         likes: raw.likes ?? 0,
         liked: !!raw.isWishlisted,
         img: raw.thumbnail,
-        status: mapStatusFromKorean(raw.status),
+        status: normalizeStatus(raw.status),
       }));
 
       setItems(filtered);
     } finally {
       setLoading(false);
     }
-  }, [categoryName]);
+  }, [categoryId, categoryName]);
 
   useEffect(() => {
     load();
@@ -128,9 +128,10 @@ export default function CategoryPage() {
     let list = [...items];
 
     if (sortType === "인기순") {
-      list.sort((a, b) => b.likes - a.likes);
+      list.sort((a, b) => (b.likes || 0) - (a.likes || 0));
     } else if (sortType === "최신순") {
-      list.sort((a, b) => b.id - a.id);
+      // id가 클수록 최신이라고 가정
+      list.sort((a, b) => (b.id || 0) - (a.id || 0));
     } else if (sortType === "거래 가능") {
       list = list.filter((p) => p.status === "ON_SALE");
     }
@@ -138,7 +139,7 @@ export default function CategoryPage() {
     return list;
   }, [items, sortType]);
 
-  /** 찜 토글 */
+  /** 찜 토글 (프론트 상태만 변경) */
   const toggleLike = (id) => {
     setItems((prev) =>
       prev.map((it) =>
@@ -146,14 +147,14 @@ export default function CategoryPage() {
           ? {
               ...it,
               liked: !it.liked,
-              likes: it.liked ? it.likes - 1 : it.likes + 1,
+              likes: it.liked ? (it.likes || 0) - 1 : (it.likes || 0) + 1,
             }
           : it
       )
     );
   };
 
-  /** 🔹 로딩 화면 (상세페이지 스타일 비슷하게) */
+  /** 🔹 로딩 화면 */
   if (loading) {
     return (
       <div className="cat-loading-wrap">
@@ -257,7 +258,9 @@ export default function CategoryPage() {
                 <div className="info">
                   <div className="category">{categoryName}</div>
                   <h3 className="title">{p.title}</h3>
-                  <div className="price">{p.price.toLocaleString()}원</div>
+                  <div className="price">
+                    {p.price != null ? p.price.toLocaleString() : 0}원
+                  </div>
                   <div className="meta">
                     <span className="seller">{p.seller}</span>
                   </div>
@@ -279,7 +282,7 @@ export default function CategoryPage() {
                       fill={p.liked ? "#e85b5b" : "none"}
                     />
                   </svg>
-                  <span className="like-num">{p.likes}</span>
+                  <span className="like-num">{p.likes ?? 0}</span>
                 </button>
               </article>
             );

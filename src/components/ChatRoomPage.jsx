@@ -4,7 +4,6 @@ import React, {
   useEffect,
   useRef,
   useState,
-  useCallback,
 } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import BottomNav from "./BottomNav";
@@ -12,12 +11,13 @@ import "../styles/ChatRoomPage.css";
 
 import camIcon from "../image/icon_camera.png";
 import sendIcon from "../image/icon_send.png";
+// import warningIcon from "../image/warning_mark.png"; // 파일이 없으므로 CSS로 대체
 
-/* ===== 공통 상수 (백엔드 연동용) ===== */
-const API_BASE = "http://localhost:8080"; // 서버 주소
-const USER_ID = 1; // TODO: 로그인 연동 후 실제 유저 ID로 교체
+// 나중에 실서버 붙일 때 여기서 BASE_URL / USER_ID 가져다 쓰면 됨
+// import { BASE_URL } from "../lib/api";
+// const API_BASE = BASE_URL;
+// const USER_ID = 1;
 
-/* 시간/날짜 유틸 */
 function formatKoreanTime(dateLike) {
   const d = new Date(dateLike);
   const h = d.getHours();
@@ -26,6 +26,7 @@ function formatKoreanTime(dateLike) {
   const hh = ((h + 11) % 12) + 1;
   return `${ap} ${hh}:${m}`;
 }
+
 function isSameYMD(a, b) {
   return (
     a.getFullYear() === b.getFullYear() &&
@@ -33,6 +34,7 @@ function isSameYMD(a, b) {
     a.getDate() === b.getDate()
   );
 }
+
 function formatDateDivider(dateLike) {
   const d = new Date(dateLike);
   return `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일`;
@@ -41,24 +43,22 @@ function formatDateDivider(dateLike) {
 export default function ChatRoomPage() {
   const { id } = useParams();
   const roomId = id || "temp";
-
   const nav = useNavigate();
 
-  /* 방 메타 정보(임시 더미)
-     - product.id 를 숫자로 둬서 /product/:id 라우트 및 상세 더미/백엔드와 맞춤 */
+  // 🔹 채팅방 메타(상대, 상품) – 지금은 mock, 나중에 API로 교체
   const [roomMeta] = useState({
     roomId,
     peer: { id: "peer-1", nickname: "닉네임12345" },
     product: {
-      id: 3, // 예: productId 3
+      id: 3,
       title: "00자전거 팝니다 사실 분",
       price: 5_350_000,
       thumbUrl: "https://via.placeholder.com/120x120?text=BIKE",
     },
   });
 
-  // 예시 메시지 (실제 연동 시 /api/chatrooms/{roomId}/messages + 소켓으로 대체)
-  const [messages, setMessages] = useState(() => [
+  // 🔹 메시지 목록 – 지금은 로컬 상태, 나중에 WebSocket / 폴링으로 교체
+  const [messages, setMessages] = useState([
     {
       id: "m1",
       roomId,
@@ -81,44 +81,25 @@ export default function ChatRoomPage() {
 
   const [text, setText] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
-  const [uploading, setUploading] = useState(false);
-
-  // 첨부/카메라 시트 & 모달
   const [attachOpen, setAttachOpen] = useState(false);
   const [cameraOpen, setCameraOpen] = useState(false);
-
-  // 이미지 전체 보기
+  const [uploading, setUploading] = useState(false);
   const [imageViewerUrl, setImageViewerUrl] = useState(null);
-
-  const openAttachSheet = () => setAttachOpen(true);
-  const triggerGallery = () => {
-    setAttachOpen(false);
-    fileInputRef.current?.click();
-  };
-  const triggerCamera = () => {
-    setAttachOpen(false);
-    setCameraOpen(true);
-  };
 
   const listRef = useRef(null);
   const bottomRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  // 새 메시지 추가 시 자동 스크롤
-  const scrollToBottom = (smooth = true) => {
-    requestAnimationFrame(() => {
-      bottomRef.current?.scrollIntoView({
-        behavior: smooth ? "smooth" : "auto",
-      });
-    });
-  };
+  // 🔹 새 메시지 들어올 때마다 맨 아래로 스크롤
   useEffect(() => {
-    scrollToBottom(true);
+    requestAnimationFrame(() => {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    });
   }, [messages.length]);
 
   const canSend = text.trim().length > 0 && !uploading;
 
-  // 텍스트 전송 (지금은 가짜 전송)
+  // 🔹 텍스트 메시지 전송 (지금은 프론트에서만 optimistic)
   const handleSend = () => {
     if (!canSend) return;
     const content = text.trim();
@@ -135,19 +116,17 @@ export default function ChatRoomPage() {
       createdAt: new Date().toISOString(),
       sendStatus: "sending",
     };
-    setMessages((prev) => [...prev, optimistic]);
+    setMessages((p) => [...p, optimistic]);
 
-    // TODO: 실제 /api/messages 전송 후 응답에 맞게 id / sendStatus 갱신
+    // 나중에 여기서 실제 POST / 메시지 전송 후 상태 업데이트
     setTimeout(() => {
-      setMessages((prev) =>
-        prev.map((m) =>
-          m.id === tempId ? { ...m, sendStatus: "sent" } : m
-        )
+      setMessages((p) =>
+        p.map((m) => (m.id === tempId ? { ...m, sendStatus: "sent" } : m))
       );
     }, 400);
   };
 
-  // 갤러리에서 파일 선택
+  // 🔹 파일 첨부(갤러리)로 이미지/동영상 전송
   const onFilesSelected = async (e) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
@@ -168,7 +147,7 @@ export default function ChatRoomPage() {
         };
         setMessages((prev) => [...prev, optimistic]);
 
-        // TODO: 실제 업로드 API 연동
+        // 나중에는 여기서 실제 업로드 후 URL로 교체
         setTimeout(() => {
           setMessages((prev) =>
             prev.map((m) =>
@@ -183,46 +162,43 @@ export default function ChatRoomPage() {
     }
   };
 
-  // WebRTC 카메라에서 한 장 촬영되었을 때
-  const handleCameraCaptured = useCallback(
-    (blob) => {
-      if (!blob) return;
+  // 🔹 카메라 촬영 후 "이 사진 사용" 눌렀을 때 → 바로 이미지 메시지로 추가
+  const handleCameraCapture = (blob) => {
+    setCameraOpen(false);
+    if (!blob) return;
 
-      const file = new File([blob], `camera_${Date.now()}.jpg`, {
-        type: blob.type || "image/jpeg",
-      });
-      const url = URL.createObjectURL(file);
+    const url = URL.createObjectURL(blob);
+    const tempId = "tmp_cam_" + Date.now();
 
-      const tempId = "tmp_cam_" + Date.now();
-      const optimistic = {
-        id: tempId,
-        tempId,
-        roomId,
-        senderId: "me",
-        type: "image",
-        media: { url },
-        createdAt: new Date().toISOString(),
-        sendStatus: "sending",
-      };
-      setMessages((prev) => [...prev, optimistic]);
+    const optimistic = {
+      id: tempId,
+      tempId,
+      roomId,
+      senderId: "me",
+      type: "image",
+      media: { url },
+      createdAt: new Date().toISOString(),
+      sendStatus: "sending",
+    };
 
-      // TODO: 실제 서버 업로드 API로 교체
-      setTimeout(() => {
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.id === tempId ? { ...m, sendStatus: "sent" } : m
-          )
-        );
-      }, 500);
-    },
-    [roomId]
-  );
+    setMessages((prev) => [...prev, optimistic]);
 
-  // 날짜 divider + 메시지 합쳐서 렌더링용 배열로 변환
+    // 나중에 여기서 실제 업로드 → 성공 시 sendStatus 'sent'로 변경
+    setTimeout(() => {
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === tempId ? { ...m, sendStatus: "sent" } : m
+        )
+      );
+    }, 500);
+  };
+
+  // 🔹 날짜 디바이더 포함해서 렌더링용 배열로 변환
   const rendered = useMemo(() => {
     if (!messages.length) return [];
     const out = [];
     let prevD = null;
+
     messages.forEach((m) => {
       const d = new Date(m.createdAt);
       if (!prevD || !isSameYMD(prevD, d)) {
@@ -232,98 +208,62 @@ export default function ChatRoomPage() {
           date: d,
         });
       }
-      out.push({ type: "message", data: m, id: m.id });
+      out.push({ type: "message", id: m.id, data: m });
       prevD = d;
     });
+
     return out;
   }, [messages]);
 
-  /* ===== 채팅방 나가기: DELETE /api/chatrooms/{roomId} 가 있다고 가정 ===== */
+  // 🔹 채팅방 나가기
   const handleLeaveRoom = async () => {
     setMenuOpen(false);
     if (!window.confirm("이 채팅방을 나가시겠어요?")) return;
 
-    try {
-      const res = await fetch(`${API_BASE}/api/chatrooms/${roomId}`, {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ userId: USER_ID }), // 필요 없으면 백엔드에서 무시
-      });
-
-      if (!res.ok) {
-        throw new Error("채팅방 나가기 실패");
-      }
-
-      // ✅ 여기까지 성공하면 백엔드에서 구매자/판매자 둘 다에게서
-      //    이 방이 안 보이도록 처리해주면 됨
-      alert("채팅방을 나갔습니다.");
-      nav("/chat"); // 채팅 목록으로 이동
-    } catch (e) {
-      console.error(e);
-      alert("채팅방 나가기 중 오류가 발생했어요.");
-    }
+    // 나중에 DELETE /api/chatrooms/{id} 같은 API 붙이면 여기서 호출
+    alert("채팅방을 나갔습니다.");
+    nav("/chat");
   };
 
   return (
     <div className="room-shell">
       <div className="room-frame">
-        {/* 상단바 */}
+        {/* 상단 */}
         <header className="room-topbar">
-          <button
-            className="top-btn"
-            onClick={() => nav(-1)}
-            aria-label="뒤로가기"
-          >
+          <button className="top-btn" onClick={() => nav(-1)} aria-label="뒤로가기">
             ←
           </button>
           <h1 className="room-title">{roomMeta.peer.nickname}</h1>
           <button
             className="top-btn"
             onClick={() => setMenuOpen(true)}
-            aria-label="더보기"
+            aria-label="메뉴 열기"
           >
             ⋮
           </button>
         </header>
 
-        {/* 상품 카드 (클릭 시 상품 상세로 이동) */}
+        {/* 상품 카드 */}
         <section
           className="product-card"
-          onClick={() => {
-            if (roomMeta.product?.id != null) {
-              nav(`/product/${roomMeta.product.id}`);
-            } else {
-              nav("/product");
-            }
-          }}
+          onClick={() => nav(`/product/${roomMeta.product.id}`)}
         >
           <div
             className="thumb"
             style={{
-              backgroundImage: `url(${roomMeta.product.thumbUrl || ""})`,
+              backgroundImage: `url(${roomMeta.product.thumbUrl})`,
             }}
           />
           <div className="prod-texts">
             <div className="prod-sub">{roomMeta.product.title}</div>
             <div className="prod-price">
-              {roomMeta.product.price
-                ? roomMeta.product.price.toLocaleString() + " 원"
-                : "0 원"}
+              {roomMeta.product.price.toLocaleString()} 원
             </div>
           </div>
         </section>
 
         {/* 메시지 목록 */}
-        <main
-          className="room-main"
-          ref={listRef}
-          style={{ paddingBottom: "70px" }}
-        >
-          {!messages.length && (
-            <div className="empty-hint">대화를 시작해 보세요.</div>
-          )}
-
+        <main className="room-main" ref={listRef}>
           {rendered.map((row) =>
             row.type === "divider" ? (
               <div key={row.id} className="date-divider">
@@ -334,22 +274,37 @@ export default function ChatRoomPage() {
                 key={row.id}
                 meId="me"
                 msg={row.data}
-                onImageClick={(url) => setImageViewerUrl(url)}
+                onImageClick={setImageViewerUrl}
               />
             )
           )}
           <div ref={bottomRef} />
         </main>
 
-        {/* 경고 배너 */}
+        {/* 안전 배너 */}
         <div className="safe-banner">
-          [중고 거래 채팅 시 외부 채널 유도 및 개인정보 요구 금지] 매너는
-          기본, 건강한 거래 문화를 약속해요.
+          <div className="safe-icon" style={{ 
+            width: '20px', 
+            height: '20px', 
+            borderRadius: '50%', 
+            backgroundColor: '#ff6b6b',
+            display: 'inline-block',
+            textAlign: 'center',
+            lineHeight: '20px',
+            color: 'white',
+            fontSize: '12px',
+            fontWeight: 'bold'
+          }}>!</div>
+          <div className="safe-top">
+            [중고 거래 채팅 시 외부 채널 유도 및 개인정보 요구 금지]
+          </div>
+          <div className="safe-bottom">
+            매너는 기본, 건강한 거래 문화를 약속해요.
+          </div>
         </div>
 
-        {/* 입력 바 */}
+        {/* 입력바 */}
         <footer className="input-bar">
-          {/* 갤러리 선택 */}
           <input
             ref={fileInputRef}
             type="file"
@@ -372,138 +327,133 @@ export default function ChatRoomPage() {
                 }
               }}
             />
-            {/* 입력창 안쪽 카메라 아이콘 -> 첨부 시트 열기 */}
             <button
               className="icon-btn inside"
-              aria-label="카메라"
-              onClick={openAttachSheet}
-              disabled={uploading}
+              onClick={() => setAttachOpen(true)}
               type="button"
+              aria-label="사진/동영상 보내기"
             >
-              <img className="icon-img" src={camIcon} alt="camera" />
+              <img className="icon-img" src={camIcon} alt="카메라" />
             </button>
           </div>
 
-          {/* 전송 버튼 */}
           <button
             className={"send-btn" + (canSend ? "" : " disabled")}
-            onClick={handleSend}
             disabled={!canSend}
-            aria-label="전송"
+            onClick={handleSend}
             type="button"
+            aria-label="전송"
           >
-            <img className="send-img" src={sendIcon} alt="send" />
+            <img className="send-img" src={sendIcon} alt="전송" />
           </button>
         </footer>
 
-        {/* 하단 네비게이션 */}
         <BottomNav />
-
-        {/* 첨부 시트: 사진/동영상 · 카메라 · 닫기 */}
-        {attachOpen && (
-          <div
-            className="sheet-backdrop"
-            onClick={() => setAttachOpen(false)}
-          >
-            <div
-              className="bottom-sheet"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="sheet-group">
-                <button className="sheet-item" onClick={triggerGallery}>
-                  사진 / 동영상
-                </button>
-                <div className="sheet-divider" />
-                <button className="sheet-item" onClick={triggerCamera}>
-                  카메라로 촬영
-                </button>
-              </div>
-              <button
-                className="sheet-item close"
-                onClick={() => setAttachOpen(false)}
-              >
-                닫기
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ⋮ 메뉴 (채팅방 나가기 포함) */}
-        {menuOpen && (
-          <div
-            className="sheet-backdrop"
-            onClick={() => setMenuOpen(false)}
-          >
-            <div
-              className="bottom-sheet"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <button
-                className="sheet-item danger"
-                onClick={handleLeaveRoom}
-              >
-                채팅방 나가기
-              </button>
-              <button
-                className="sheet-item close"
-                onClick={() => setMenuOpen(false)}
-              >
-                닫기
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* WebRTC 카메라 모달 */}
-        {cameraOpen && (
-          <CameraModal
-            onClose={() => setCameraOpen(false)}
-            onCapture={(blob) => {
-              setCameraOpen(false);
-              handleCameraCaptured(blob);
-            }}
-          />
-        )}
-
-        {/* 이미지 전체 보기 모달 */}
-        {imageViewerUrl && (
-          <div
-            className="img-viewer-backdrop"
-            onClick={() => setImageViewerUrl(null)}
-          >
-            <img
-              className="img-viewer-img"
-              src={imageViewerUrl}
-              alt=""
-              onClick={(e) => e.stopPropagation()}
-            />
-          </div>
-        )}
       </div>
+
+      {/* ====== room-frame 밖으로 이동한 시트/모달들 ====== */}
+
+      {/* ⋮ 메뉴 시트 */}
+      {menuOpen && (
+        <div className="sheet-backdrop" onClick={() => setMenuOpen(false)}>
+          <div
+            className="bottom-sheet menu-sheet"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button className="sheet-item danger" onClick={handleLeaveRoom}>
+              채팅방 나가기
+            </button>
+            <button
+              className="sheet-item close"
+              onClick={() => setMenuOpen(false)}
+            >
+              닫기
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 첨부 시트 */}
+      {attachOpen && (
+        <div className="sheet-backdrop" onClick={() => setAttachOpen(false)}>
+          <div
+            className="bottom-sheet attach-sheet"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="sheet-group">
+              <button
+                className="sheet-item"
+                onClick={() => {
+                  setAttachOpen(false);
+                  fileInputRef.current?.click();
+                }}
+              >
+                사진 / 동영상
+              </button>
+              <div className="sheet-divider" />
+              <button
+                className="sheet-item"
+                onClick={() => {
+                  setAttachOpen(false);
+                  setCameraOpen(true);
+                }}
+              >
+                카메라로 촬영
+              </button>
+            </div>
+            <button
+              className="sheet-item close"
+              onClick={() => setAttachOpen(false)}
+            >
+              닫기
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 카메라 모달 */}
+      {cameraOpen && (
+        <CameraModal
+          onClose={() => setCameraOpen(false)}
+          onCapture={handleCameraCapture}
+        />
+      )}
+
+      {/* 이미지 전체 보기 */}
+      {imageViewerUrl && (
+        <div
+          className="img-viewer-backdrop"
+          onClick={() => setImageViewerUrl(null)}
+        >
+          <img
+            className="img-viewer-img"
+            src={imageViewerUrl}
+            alt="미리보기"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   );
 }
 
 function MessageBubble({ meId, msg, onImageClick }) {
   const mine = msg.senderId === meId;
-  const handleImageClick = () => {
-    if (msg.media?.url && onImageClick) {
-      onImageClick(msg.media.url);
-    }
-  };
 
   return (
     <div className={"msg-row " + (mine ? "mine" : "peer")}>
       <div className={"bubble " + msg.type}>
         {msg.type === "text" && <span>{msg.text}</span>}
+
         {msg.type === "image" && (
           <img
             className="media"
             src={msg.media?.url}
-            alt=""
-            onClick={handleImageClick}
+            onClick={() => onImageClick(msg.media.url)}
+            alt="이미지 메시지"
           />
         )}
+
         {msg.type === "video" && (
           <video
             className="media"
@@ -513,6 +463,7 @@ function MessageBubble({ meId, msg, onImageClick }) {
           />
         )}
       </div>
+
       <div className="meta">
         <span className="time">{formatKoreanTime(msg.createdAt)}</span>
         {mine && msg.sendStatus === "sent" && (
@@ -521,15 +472,12 @@ function MessageBubble({ meId, msg, onImageClick }) {
         {mine && msg.sendStatus === "sending" && (
           <span className="read">전송중…</span>
         )}
-        {mine && msg.sendStatus === "failed" && (
-          <span className="read fail">실패</span>
-        )}
       </div>
     </div>
   );
 }
 
-/* ===== WebRTC 카메라 모달 ===== */
+/* ============ CameraModal ============ */
 function CameraModal({ onClose, onCapture }) {
   const videoRef = useRef(null);
   const streamRef = useRef(null);
@@ -603,6 +551,8 @@ function CameraModal({ onClose, onCapture }) {
   const handleUseShot = () => {
     if (shotBlobRef.current && onCapture) {
       onCapture(shotBlobRef.current);
+    } else {
+      onClose();
     }
   };
 
@@ -635,7 +585,9 @@ function CameraModal({ onClose, onCapture }) {
           ) : (
             <img className="cam-shot" src={shotUrl} alt="preview" />
           )}
-          {!ready && <div className="cam-loading">카메라 여는 중...</div>}
+          {!ready && (
+            <div className="cam-loading">카메라 여는 중...</div>
+          )}
         </div>
 
         <div className="cam-actions">

@@ -1,5 +1,5 @@
 // src/components/MainPage.jsx
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import "../styles/MainPage.css";
 
@@ -23,15 +23,50 @@ import stickerSoldout from "../image/status-soldout.png";
 
 import BottomNav from "./BottomNav";
 
+// 🔹 공통 유틸
+import { buildImageUrl } from "../lib/products";
+import { api } from "../lib/api";
+
+// 🔹 mock fallback 용
+import { MOCK_PRODUCTS } from "../data/mockProducts";
+
+/* 사용자 ID 가져오기 (카카오 로그인) */
+const getUserId = () => {
+  try {
+    const profileStr = localStorage.getItem("ssak3.profile");
+    if (profileStr) {
+      const profile = JSON.parse(profileStr);
+      return profile.id;
+    }
+  } catch (e) {
+    console.error("프로필 파싱 실패:", e);
+  }
+  return null;
+};
+
 /* ========================================================= */
 /* 메인 페이지 */
 /* ========================================================= */
 
 export default function MainPage() {
   const nav = useNavigate();
-  const userName = "주예원";
 
-  // ✅ CATEGORY_MAP 과 맞춘 카테고리 id
+  // ✅ 로그인한 유저 이름 가져오기 (카카오 로그인)
+  const getUserName = () => {
+    try {
+      const profileStr = localStorage.getItem("ssak3.profile");
+      if (profileStr) {
+        const profile = JSON.parse(profileStr);
+        return profile.nickname || "사용자";
+      }
+    } catch (e) {
+      console.error("프로필 파싱 실패:", e);
+    }
+    return "사용자";
+  };
+  const userName = getUserName();
+
+  // ✅ 카테고리: CategoryPage와 동일한 코드 사용
   const categories = [
     { id: "books", label: "도서 / 문구", icon: iconBook },
     { id: "clothes", label: "의류", icon: iconCloth },
@@ -39,30 +74,121 @@ export default function MainPage() {
     { id: "helper", label: "도우미 / 기타", icon: iconEtc },
   ];
 
-  // ✅ status: "판매중" | "예약중" | "판매완료"
-  const [recommended, setRecommended] = useState([
-    {
-      id: 101,
-      category: "의류",
-      title: "봄 간절기 바람막이",
-      price: 52800,
-      liked: false,
-      status: "판매중",
-      img: "https://picsum.photos/300?10",
-    },
-  ]);
+  // ✅ 추천 / 찜 목록
+  const [recommended, setRecommended] = useState([]);
+  const [likedList, setLikedList] = useState([]);
 
-  const [likedList, setLikedList] = useState([
-    {
-      id: 201,
-      category: "가전 / 주방",
-      title: "소형 전자레인지",
-      price: 35000,
-      liked: true,
-      status: "예약중",
-      img: "https://picsum.photos/300?20",
-    },
-  ]);
+  const [loadingRecommended, setLoadingRecommended] = useState(true);
+  const [loadingLiked, setLoadingLiked] = useState(true);
+
+  /** 🔥 추천 상품 로드 (백엔드 /api/products + mock fallback) */
+  const loadRecommended = useCallback(async () => {
+    setLoadingRecommended(true);
+
+    try {
+      // GET /api/products  → 전체 상품 목록
+      const rawList = await api("/api/products");
+
+      // 필요하면 앞에서 몇 개만 사용
+      const slice = Array.isArray(rawList) ? rawList.slice(0, 10) : [];
+
+      const mapped = slice.map((raw) => ({
+        id: raw.id,
+        category: raw.categoryName ?? "", // "의류", "도서/문구", ...
+        title: raw.title,
+        price: raw.price,
+        liked: !!raw.isWishlisted,
+        status: raw.status || "ON_SALE", // ON_SALE / RESERVED / SOLD_OUT
+        img: Array.isArray(raw.imageUrls)
+          ? buildImageUrl(raw.imageUrls[0])
+          : "",
+      }));
+
+      setRecommended(mapped);
+    } catch (e) {
+      console.warn("[추천 상품] 백엔드 실패 → mock fallback", e);
+
+      const fallback = MOCK_PRODUCTS.slice(0, 5).map((raw) => ({
+        id: raw.id,
+        category: raw.category, // 이미 한글 카테고리 라벨
+        title: raw.title,
+        price: raw.price,
+        liked: !!raw.isWishlisted,
+        status:
+          raw.status === "예약중"
+            ? "RESERVED"
+            : raw.status === "판매완료"
+            ? "SOLD_OUT"
+            : "ON_SALE",
+        img: raw.thumbnail,
+      }));
+
+      setRecommended(fallback);
+    } finally {
+      setLoadingRecommended(false);
+    }
+  }, []);
+
+  /** 🔥 찜 목록 로드 (백엔드 /api/likes/user/{userId} + mock fallback) */
+  const loadLikedList = useCallback(async () => {
+    setLoadingLiked(true);
+
+    try {
+      // GET /api/likes/user/{userId}
+      // 응답: [{ productId, title, price, imageUrl }]
+      const userId = getUserId();
+      if (!userId) {
+        throw new Error("사용자 ID를 찾을 수 없습니다.");
+      }
+      const likes = await api(`/api/likes/user/${userId}`);
+
+      const mapped = (likes || []).map((raw) => ({
+        id: raw.productId,
+        // 카테고리 정보는 이 응답에 없으므로 비워두거나 "찜한 상품" 등으로 표기 가능
+        category: "",
+        title: raw.title,
+        price: raw.price,
+        liked: true,
+        // 상태 정보도 없으므로 기본값 ON_SALE로 둠
+        status: "ON_SALE",
+        img: buildImageUrl(raw.imageUrl),
+      }));
+
+      setLikedList(mapped);
+    } catch (e) {
+      console.warn("[찜 목록] 백엔드 실패 → mock fallback", e);
+
+      // fallback: MOCK_PRODUCTS 중 isWishlisted 기준
+      const wishItems = MOCK_PRODUCTS.filter((p) => p.isWishlisted).slice(
+        0,
+        5
+      );
+
+      const mapped = wishItems.map((raw) => ({
+        id: raw.id,
+        category: raw.category,
+        title: raw.title,
+        price: raw.price,
+        liked: true,
+        status:
+          raw.status === "예약중"
+            ? "RESERVED"
+            : raw.status === "판매완료"
+            ? "SOLD_OUT"
+            : "ON_SALE",
+        img: raw.thumbnail,
+      }));
+
+      setLikedList(mapped);
+    } finally {
+      setLoadingLiked(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadRecommended();
+    loadLikedList();
+  }, [loadRecommended, loadLikedList]);
 
   const toggleLikeRecommended = (id) => {
     setRecommended((prev) =>
@@ -130,16 +256,23 @@ export default function MainPage() {
             {userName} 님 이런 상품은 어떠세요?
           </h2>
 
-          <div className="home-product-row">
-            {recommended.map((p) => (
-              <ProductCard
-                key={p.id}
-                data={p}
-                toggleLike={() => toggleLikeRecommended(p.id)}
-                onCardClick={() => nav(`/product/${p.id}`)}
-              />
-            ))}
-          </div>
+          {loadingRecommended ? (
+            <p className="home-loading-text">추천 상품 불러오는 중...</p>
+          ) : (
+            <div className="home-product-row">
+              {recommended.map((p) => (
+                <ProductCard
+                  key={p.id}
+                  data={p}
+                  toggleLike={() => toggleLikeRecommended(p.id)}
+                  onCardClick={() => nav(`/product/${p.id}`)}
+                />
+              ))}
+              {recommended.length === 0 && (
+                <p className="home-empty-text">지금은 추천할 상품이 없어요.</p>
+              )}
+            </div>
+          )}
         </section>
 
         <hr className="home-divider" />
@@ -151,16 +284,25 @@ export default function MainPage() {
             찜했던 그거! ⏰ 놓치기 아깝잖아요?
           </p>
 
-          <div className="home-product-row">
-            {likedList.map((p) => (
-              <ProductCard
-                key={p.id}
-                data={p}
-                toggleLike={() => toggleLikeLiked(p.id)}
-                onCardClick={() => nav(`/product/${p.id}`)}
-              />
-            ))}
-          </div>
+          {loadingLiked ? (
+            <p className="home-loading-text">찜 목록 불러오는 중...</p>
+          ) : (
+            <div className="home-product-row">
+              {likedList.map((p) => (
+                <ProductCard
+                  key={p.id}
+                  data={p}
+                  toggleLike={() => toggleLikeLiked(p.id)}
+                  onCardClick={() => nav(`/product/${p.id}`)}
+                />
+              ))}
+              {likedList.length === 0 && (
+                <p className="home-empty-text">
+                  아직 찜한 상품이 없어요. 마음에 드는 상품을 찜해보세요!
+                </p>
+              )}
+            </div>
+          )}
         </section>
 
         <div className="home-bottom-space" />
@@ -177,6 +319,9 @@ export default function MainPage() {
 function ProductCard({ data, toggleLike, onCardClick }) {
   const { img, category, title, price, liked, status } = data;
 
+  const isReserved = status === "RESERVED";
+  const isSoldOut = status === "SOLD_OUT";
+
   return (
     <article className="home-card" onClick={onCardClick}>
       <div className="home-card-thumb">
@@ -185,21 +330,19 @@ function ProductCard({ data, toggleLike, onCardClick }) {
           src={img}
           alt={title}
           className={
-            status === "예약중" || status === "판매완료"
-              ? "home-thumb-img gray"
-              : "home-thumb-img"
+            isReserved || isSoldOut ? "home-thumb-img gray" : "home-thumb-img"
           }
         />
 
         {/* 상태 스티커 */}
-        {status === "예약중" && (
+        {isReserved && (
           <img
             className="home-status-sticker"
             src={stickerReserved}
             alt="예약중"
           />
         )}
-        {status === "판매완료" && (
+        {isSoldOut && (
           <img
             className="home-status-sticker"
             src={stickerSoldout}

@@ -1,5 +1,10 @@
 // src/components/SearchPage.jsx
-import React, { useMemo, useState } from "react";
+import React, {
+  useMemo,
+  useState,
+  useEffect,
+  useCallback,
+} from "react";
 import { useNavigate } from "react-router-dom";
 
 import flamel1 from "../image/flamel-ai-edit-1982838-2-2-4.png";
@@ -10,25 +15,26 @@ import "../styles/SearchPage.css";
 
 import BottomNav from "./BottomNav";
 
-// 예약중 / 판매완료 스티커
+// 상태 스티커
 import stickerReserved from "../image/status-reserved.png";
 import stickerSoldout from "../image/status-soldout.png";
 
-// 🔹 공통 더미 상품
+// mock
 import { MOCK_PRODUCTS } from "../data/mockProducts";
+
+// 공통 api
+import { api } from "../lib/api";
 
 export default function SearchPage() {
   const navigate = useNavigate();
 
-  const [searchTerm, setSearchTerm] = useState("바람막이");
-  const [keyword, setKeyword] = useState(""); // 🔹 실제 검색 필터에 사용
+  const [searchTerm, setSearchTerm] = useState("가디건"); // 입력창 값
+  const [keyword, setKeyword] = useState(""); // 실제 검색에 사용된 키워드
 
-  // 최근 검색어
-  const [recent, setRecent] = useState(["바람막이", "자켓", "패딩"]);
+  const [recent, setRecent] = useState(["가디건", "자켓", "패딩"]);
   const removeRecent = (word) =>
     setRecent((prev) => prev.filter((w) => w !== word));
 
-  // 필터칩 (지금은 비워두고, 나중에 백엔드 연동 시 사용)
   const [filters, setFilters] = useState([]);
   const removeFilter = (tag) =>
     setFilters((prev) => prev.filter((t) => t !== tag));
@@ -36,29 +42,64 @@ export default function SearchPage() {
   const [sortOpen, setSortOpen] = useState(false);
   const [sortType, setSortType] = useState("인기순");
 
-  // ✅ 초기 상품: 공통 MOCK_PRODUCTS 중 search 태그 달린 것만
+  // 실제 검색 결과
   const [products, setProducts] = useState(() =>
     MOCK_PRODUCTS.filter((p) => p.tags?.includes("search"))
   );
 
   const handleInputChange = (e) => setSearchTerm(e.target.value);
 
-  // 공통 검색 실행 함수
-  const runSearch = (raw) => {
-    const q = raw.trim();
-    if (!q) return;
+  // ✅ 공통 검색 함수 (백엔드 + mock fallback)
+  const runSearch = useCallback(
+    async (raw) => {
+      const q = raw.trim();
+      if (!q) return;
 
-    setSearchTerm(q);
-    setKeyword(q); // 🔹 실제 검색어 상태로 저장
+      setKeyword(q);
+      setSearchTerm(q);
 
-    // 최근 검색어 갱신 (중복 제거 + 앞에 추가, 최대 3개)
-    setRecent((prev) => {
-      const next = [q, ...prev.filter((w) => w !== q)];
-      return next.slice(0, 3);
-    });
+      // 최근 검색어 갱신
+      setRecent((prev) => {
+        const next = [q, ...prev.filter((w) => w !== q)];
+        return next.slice(0, 3);
+      });
 
-    // TODO: 실제 검색 API 연동 시 여기서 fetch/axios 호출
-  };
+      try {
+        // GET /api/products/search?keyword={검색어}
+        const list = await api(
+          `/api/products/search?keyword=${encodeURIComponent(q)}`
+        );
+
+        const mapped = list.map((raw) => ({
+          id: raw.id,
+          title: raw.title,
+          price: raw.price,
+          status: raw.status || "ON_SALE", // ON_SALE / RESERVED / SOLD_OUT
+          category: raw.categoryName || "",
+          seller: raw.sellerNickname || "닉네임",
+          liked: !!raw.isWishlisted,
+          likes: raw.likeCount ?? 0,
+          thumbnail: Array.isArray(raw.imageUrls)
+            ? raw.imageUrls[0]
+            : "",
+        }));
+
+        setProducts(mapped);
+      } catch (err) {
+        console.warn("[검색] 백엔드 실패 → mock 사용", err);
+        const fallback = MOCK_PRODUCTS.filter((p) =>
+          p.title.toLowerCase().includes(q.toLowerCase())
+        );
+        setProducts(fallback);
+      }
+    },
+    [] // setState 들은 안정적이어서 deps에 안 넣어도 ESLint 통과
+  );
+
+  // 🔹 페이지 처음 열릴 때 기본 검색 한 번 실행
+  useEffect(() => {
+    runSearch("가디건");
+  }, [runSearch]);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -69,7 +110,6 @@ export default function SearchPage() {
     runSearch(word);
   };
 
-  // 좋아요 토글
   const toggleLike = (id) => {
     setProducts((prev) =>
       prev.map((p) =>
@@ -77,34 +117,30 @@ export default function SearchPage() {
           ? {
               ...p,
               liked: !p.liked,
-              likes: p.liked ? Math.max(0, p.likes - 1) : p.likes + 1,
+              likes: p.liked ? Math.max(0, (p.likes || 0) - 1) : (p.likes || 0) + 1,
             }
           : p
       )
     );
   };
 
-  // 정렬/필터 선택
   const pickSort = (t) => {
     setSortType(t);
     setSortOpen(false);
   };
 
-  // 화면에 보여줄 상품 리스트 (검색어 + 정렬 + 거래 가능 필터)
   const visibleProducts = useMemo(() => {
     let base = products;
 
-    // 🔹 keyword 기준으로 검색 필터 적용
     const q = keyword.trim().toLowerCase();
     if (q) {
-      base = base.filter((p) =>
-        p.title.toLowerCase().includes(q)
-      );
+      base = base.filter((p) => p.title.toLowerCase().includes(q));
     }
 
     if (sortType === "거래 가능") {
-      // 거래 가능 → "판매중"만 (mock는 한글 status)
-      return base.filter((p) => p.status === "판매중");
+      base = base.filter(
+        (p) => p.status === "ON_SALE" || p.status === "판매중"
+      );
     }
 
     const copied = [...base];
@@ -114,7 +150,8 @@ export default function SearchPage() {
     } else if (sortType === "최신순") {
       copied.sort(
         (a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          new Date(b.createdAt || 0).getTime() -
+          new Date(a.createdAt || 0).getTime()
       );
     }
 
@@ -131,78 +168,61 @@ export default function SearchPage() {
             aria-label="뒤로가기"
             onClick={() => navigate(-1)}
           >
-            <img src={vector33} alt="" />
+            <img src={vector33} alt="뒤로가기" />
           </button>
           <img className="sp-logo" src={group115} alt="logo" />
           <div className="sp-mascot">
-            <img className="mascot-1" src={flamel1} alt="" />
-            <img className="mascot-2" src={flamel2} alt="" />
+            <img className="mascot-1" src={flamel1} alt="마스코트1" />
+            <img className="mascot-2" src={flamel2} alt="마스코트2" />
           </div>
         </header>
 
-        {/* 검색창 */}
-        <form className="sp-searchbar" onSubmit={handleSearch}>
-          <input
-            className="sp-input"
-            type="text"
-            placeholder="원하시는 물건이 있으신가요?"
-            value={searchTerm}
-            onChange={handleInputChange}
-          />
-          <button className="sp-searchbtn" type="submit" aria-label="검색">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="#2b0c0b"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <circle cx="11" cy="11" r="8" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
-          </button>
-        </form>
+        {/* 검색영역 전체 블럭 */}
+        <div className="sp-header-block">
+          {/* 검색창 */}
+          <form className="sp-searchbar" onSubmit={handleSearch}>
+            <input
+              className="sp-input"
+              type="text"
+              placeholder="원하시는 물건이 있으신가요?"
+              value={searchTerm}
+              onChange={handleInputChange}
+            />
+            <button className="sp-searchbtn" type="submit" aria-label="검색">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#2b0c0b"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+            </button>
+          </form>
 
-        {/* 최근 검색어 */}
-        <section className="sp-section">
-          <div className="sp-section-title">최근 검색어</div>
-          <div className="chips">
-            {recent.map((word) => (
-              <span key={word} className="chip recent">
-                <button
-                  type="button"
-                  className="chip-label"
-                  onClick={() => handleRecentClick(word)}
-                >
-                  {word}
-                </button>
-                <button
-                  className="chip-x"
-                  onClick={() => removeRecent(word)}
-                  aria-label={`${word} 삭제`}
-                >
-                  ×
-                </button>
-              </span>
-            ))}
-          </div>
-        </section>
-
-        {/* 필터칩 (지금은 비어 있음 – 나중에 연동) */}
-        {filters.length > 0 && (
+          {/* 최근 검색어 */}
           <section className="sp-section">
+            <div className="sp-section-title">최근 검색어</div>
             <div className="chips">
-              {filters.map((f) => (
-                <span key={f} className="chip filter">
-                  {f}
+              {recent.map((word) => (
+                <span key={word} className="chip recent">
+                  <button
+                    type="button"
+                    className="chip-label"
+                    onClick={() => handleRecentClick(word)}
+                  >
+                    {word}
+                  </button>
                   <button
                     className="chip-x"
-                    aria-label={`${f} 필터 제거`}
-                    onClick={() => removeFilter(f)}
+                    onClick={() => removeRecent(word)}
+                    aria-label={`${word} 삭제`}
                   >
                     ×
                   </button>
@@ -210,29 +230,49 @@ export default function SearchPage() {
               ))}
             </div>
           </section>
-        )}
 
-        {/* 상품 개수 + 정렬 */}
-        <div className="sp-list-header">
-          <div className="left">
-            <span className="label">상품</span>
-            <span className="count">{visibleProducts.length}</span>
+          {/* 필터칩 (지금은 안 씀) */}
+          {filters.length > 0 && (
+            <section className="sp-section">
+              <div className="chips">
+                {filters.map((f) => (
+                  <span key={f} className="chip filter">
+                    {f}
+                    <button
+                      className="chip-x"
+                      aria-label={`${f} 필터 제거`}
+                      onClick={() => removeFilter(f)}
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* 상품 개수 + 정렬 */}
+          <div className="sp-list-header">
+            <div className="left">
+              <span className="label">상품</span>
+              <span className="count">{visibleProducts.length}</span>
+            </div>
+            <button className="right" onClick={() => setSortOpen(true)}>
+              <span className="sort">{sortType}</span>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M7 10l5 5 5-5"
+                  stroke="#442323"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </button>
           </div>
-          <button className="right" onClick={() => setSortOpen(true)}>
-            <span className="sort">{sortType}</span>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
-              <path
-                d="M7 10l5 5 5-5"
-                stroke="#442323"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </button>
         </div>
 
-        {/* 상품 카드 리스트 */}
+        {/* 상품 리스트 */}
         <div className="sp-product-list">
           {visibleProducts.map((p) => (
             <article
@@ -240,27 +280,27 @@ export default function SearchPage() {
               className="sp-card"
               onClick={() => navigate(`/product/${p.id}`)}
             >
-              {/* 썸네일 + 흑백 + 상태 스티커 */}
               <div className="sp-thumb-wrap">
                 <img
                   src={p.thumbnail || p.img}
-                  alt={p.title}
+                  alt={p.title || "상품 이미지"}
                   className={
-                    p.status === "예약중" || p.status === "판매완료"
+                    p.status === "RESERVED" ||
+                    p.status === "SOLD_OUT" ||
+                    p.status === "예약중" ||
+                    p.status === "판매완료"
                       ? "sp-thumb-img gray"
                       : "sp-thumb-img"
                   }
                 />
-
-                {p.status === "예약중" && (
+                {(p.status === "RESERVED" || p.status === "예약중") && (
                   <img
                     src={stickerReserved}
                     alt="예약중"
                     className="sp-status-sticker"
                   />
                 )}
-
-                {p.status === "판매완료" && (
+                {(p.status === "SOLD_OUT" || p.status === "판매완료") && (
                   <img
                     src={stickerSoldout}
                     alt="판매완료"
@@ -269,14 +309,12 @@ export default function SearchPage() {
                 )}
               </div>
 
-              {/* 정보 영역 */}
               <div className="info">
                 <div className="category">{p.category || "의류"}</div>
                 <h3 className="title">{p.title}</h3>
                 <div className="price">
                   {p.price != null ? p.price.toLocaleString() : 0}원
                 </div>
-
                 <div className="meta">
                   <span className="seller">
                     {p.seller?.nickname || p.seller || "닉네임"}
@@ -284,11 +322,10 @@ export default function SearchPage() {
                 </div>
               </div>
 
-              {/* 찜 버튼 */}
               <button
                 className={"like-btn" + (p.liked ? " liked" : "")}
                 onClick={(e) => {
-                  e.stopPropagation(); // 상세 이동 막기
+                  e.stopPropagation();
                   toggleLike(p.id);
                 }}
                 type="button"
@@ -311,7 +348,10 @@ export default function SearchPage() {
         {/* 정렬 바텀시트 */}
         {sortOpen && (
           <div className="sheet-backdrop" onClick={() => setSortOpen(false)}>
-            <div className="bottom-sheet" onClick={(e) => e.stopPropagation()}>
+            <div
+              className="bottom-sheet"
+              onClick={(e) => e.stopPropagation()}
+            >
               <button className="sheet-item" onClick={() => pickSort("인기순")}>
                 인기순
               </button>

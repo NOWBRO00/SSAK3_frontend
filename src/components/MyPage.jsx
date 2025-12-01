@@ -1,5 +1,5 @@
 // src/components/MyPage.jsx
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import BottomNav from "./BottomNav";
 import "../styles/MyPage.css";
@@ -20,87 +20,154 @@ import tabWishOff from "../image/tab-wish-off.png";
 import stickerReserved from "../image/status-reserved.png";
 import stickerSoldout from "../image/status-soldout.png";
 
+// 🔹 공통 더미 상품
+import { MOCK_PRODUCTS } from "../data/mockProducts";
+
+// 🔹 API BASE + 이미지 URL 유틸 (카테고리/상품에서 쓰는 것과 동일하게)
+import { BASE_URL } from "../lib/api";
+import { buildImageUrl } from "../lib/products";
+
+const API_BASE = BASE_URL;
+
+// ✅ 사용자 ID 가져오기 (카카오 로그인)
+const getUserId = () => {
+  try {
+    const profileStr = localStorage.getItem("ssak3.profile");
+    if (profileStr) {
+      const profile = JSON.parse(profileStr);
+      return profile.id;
+    }
+  } catch (e) {
+    console.error("프로필 파싱 실패:", e);
+  }
+  return null;
+};
+
+/** 한글 상태 → 내부 enum */
+const mapStatusFromKorean = (status) => {
+  switch (status) {
+    case "판매중":
+      return "ON_SALE";
+    case "예약중":
+      return "RESERVED";
+    case "판매완료":
+      return "SOLD_OUT";
+    default:
+      return "ON_SALE";
+  }
+};
+
+/** 내부 enum → 한글 상태 (UI 표시용) */
+const mapStatusToKorean = (code) => {
+  switch (code) {
+    case "ON_SALE":
+      return "판매중";
+    case "RESERVED":
+      return "예약중";
+    case "SOLD_OUT":
+      return "판매완료";
+    default:
+      return "판매중";
+  }
+};
+
 export default function MyPage() {
   const navigate = useNavigate();
 
-  const [activeTab, setActiveTab] = useState("my");
+  const [activeTab, setActiveTab] = useState("my"); // "my" | "wish"
   const [filterOpen, setFilterOpen] = useState(false);
-  // ✅ 상태값: "판매중" | "예약중" | "판매완료"
-  const [filterStatus, setFilterStatus] = useState("판매중");
+  // ✅ 내부 status enum: "ON_SALE" | "RESERVED" | "SOLD_OUT"
+  const [filterStatus, setFilterStatus] = useState("ON_SALE");
 
+  // ✅ 카카오 로그인 사용자 정보 가져오기
+  const profile = useMemo(() => {
+    try {
+      const profileStr = localStorage.getItem("ssak3.profile");
+      if (profileStr) {
+        return JSON.parse(profileStr);
+      }
+    } catch (e) {
+      console.error("프로필 파싱 실패:", e);
+    }
+    return null;
+  }, []);
+
+  // TODO: 나중에 백엔드 연동
   const temperature = 55.7;
   const sellCount = 12;
-  const nickname = "닉네임님안녕하세요";
+  const nickname = profile?.nickname || "사용자";
+  const profileImage = profile?.profileImageUrl || profile?.thumbnailImageUrl || defaultProfile;
 
-  // ✅ 임시 상품 데이터 (status 통일)
-  const [items, setItems] = useState([
-    {
-      id: 1,
-      category: "가전 / 주방",
-      title: "00자전거 팝니다 ...",
-      price: 5350000,
-      status: "판매중",
-      wished: true,
-      img: "https://picsum.photos/300?1",
-    },
-    {
-      id: 2,
-      category: "의류",
-      title: "옷 사실 분~~",
-      price: 500,
-      status: "판매중",
-      wished: false,
-      img: "https://picsum.photos/300?2",
-    },
-    {
-      id: 3,
-      category: "가전 / 주방",
-      title: "00자전거 팝니다 ...",
-      price: 5350000,
-      status: "예약중",
-      wished: true,
-      img: "https://picsum.photos/300?3",
-    },
-    {
-      id: 4,
-      category: "가전 / 주방",
-      title: "중고 아이폰 사실분",
-      price: 5350000,
-      status: "판매완료",
-      wished: false,
-      img: "https://picsum.photos/300?4",
-    },
-    {
-      id: 5,
-      category: "도우미 / 기타",
-      title: "향수 ㅇㅇ 개봉만함",
-      price: 350000,
-      status: "판매중",
-      wished: true,
-      img: "https://picsum.photos/300?5",
-    },
-    {
-      id: 6,
-      category: "도서 / 문구",
-      title: "00전공서적 팝니다",
-      price: 50000,
-      status: "판매중",
-      wished: false,
-      img: "https://picsum.photos/300?6",
-    },
-  ]);
-
-  const myItems = items;
-  const wishItems = useMemo(
-    () => items.filter((item) => item.wished),
-    [items]
+  // ✅ 1) 내 상품 목록 (지금은 아직 별도 API가 없어서 mock 기반)
+  const [myItems, setMyItems] = useState(() =>
+    MOCK_PRODUCTS.filter((p) => p.tags?.includes("mypage")).map((p) => ({
+      id: p.id,
+      category: p.category, // "의류" / "가전 / 주방" 등 한글 카테고리
+      title: p.title,
+      price: p.price,
+      status: mapStatusFromKorean(p.status), // 내부 enum으로 변환
+      wished: !!p.isWishlisted,
+      img: p.thumbnail || p.images?.[0],
+    }))
   );
 
+  // ✅ 2) 찜 목록: 명세서 기준 /api/likes/user/{userId}
+  const [wishItems, setWishItems] = useState([]);
+  const [loadingWish, setLoadingWish] = useState(true);
+
+  useEffect(() => {
+    const loadWish = async () => {
+      setLoadingWish(true);
+      try {
+        const userId = getUserId();
+        if (!userId) {
+          throw new Error("사용자 ID를 찾을 수 없습니다.");
+        }
+        const res = await fetch(`${API_BASE}/api/likes/user/${userId}`);
+        if (!res.ok) throw new Error("찜 목록 조회 실패");
+
+        const rawList = await res.json(); // 예시: [{ productId, title, price, imageUrl }]
+        const mapped = rawList.map((w) => ({
+          id: w.productId,
+          title: w.title,
+          price: w.price,
+          img: buildImageUrl(w.imageUrl),
+          category: w.categoryName || "", // 나중에 백엔드가 붙여주면 사용
+          status: "ON_SALE", // 👍 likes 응답엔 상태가 없어서 기본값
+          wished: true,
+        }));
+
+        setWishItems(mapped);
+      } catch (e) {
+        console.warn("[찜 목록] 백엔드 실패 → mock fallback", e);
+        // 백엔드 실패 시: mock에서 isWishlisted=true 인 것만 사용
+        const fallback = MOCK_PRODUCTS.filter((p) => p.isWishlisted).map(
+          (p) => ({
+            id: p.id,
+            category: p.category,
+            title: p.title,
+            price: p.price,
+            status: mapStatusFromKorean(p.status),
+            wished: true,
+            img: p.thumbnail || p.images?.[0],
+          })
+        );
+        setWishItems(fallback);
+      } finally {
+        setLoadingWish(false);
+      }
+    };
+
+    loadWish();
+  }, []);
+
+  // 선택된 탭에 따라 보여줄 base 리스트
   const baseList = activeTab === "my" ? myItems : wishItems;
 
-  // ✅ 선택된 상태만 필터링
-  const filteredItems = baseList.filter(
-    (item) => item.status === filterStatus
+  // ✅ 선택된 status(enum)만 필터링
+  const filteredItems = useMemo(
+    () => baseList.filter((item) => item.status === filterStatus),
+    [baseList, filterStatus]
   );
 
   const productCount = myItems.length;
@@ -109,17 +176,30 @@ export default function MyPage() {
   const countLabel = activeTab === "my" ? "상품" : "찜";
   const countValue = activeTab === "my" ? productCount : wishCount;
 
-  const handleSelectFilter = (status) => {
-    setFilterStatus(status);
+  const handleSelectFilter = (statusCode) => {
+    setFilterStatus(statusCode); // "ON_SALE" | "RESERVED" | "SOLD_OUT"
     setFilterOpen(false);
   };
 
+  // ❤️ 토글
   const toggleLike = (id) => {
-    setItems((prev) =>
-      prev.map((item) =>
-        item.id === id ? { ...item, wished: !item.wished } : item
-      )
-    );
+    if (activeTab === "my") {
+      // 내 상품 탭에서는 단순히 표시만 바꿔줌 (실제 찜 API 연동은 상세/리스트에서 처리)
+      setMyItems((prev) =>
+        prev.map((item) =>
+          item.id === id ? { ...item, wished: !item.wished } : item
+        )
+      );
+    } else {
+      // 찜 탭에서 하트를 다시 누르면 목록에서 제거
+      setWishItems((prev) => prev.filter((item) => item.id !== id));
+      // TODO: 명세서 기준 DELETE /api/likes 로 실제 찜 해제 API 연결 가능
+    }
+  };
+
+  const handleLogout = () => {
+    // TODO: 나중에 토큰/세션 초기화 추가
+    navigate("/login");
   };
 
   return (
@@ -148,7 +228,7 @@ export default function MyPage() {
           <div className="mypage-profile-top">
             <div className="mypage-profile-left">
               <img
-                src={defaultProfile}
+                src={profileImage}
                 alt=""
                 className="mypage-profile-img"
               />
@@ -157,8 +237,14 @@ export default function MyPage() {
                 <div className="mypage-selltext">판매수 {sellCount}</div>
               </div>
             </div>
+
+            {/* 오른쪽 위 로그아웃 */}
+            <button className="mypage-logout-btn" onClick={handleLogout}>
+              로그아웃
+            </button>
           </div>
 
+          {/* 나눔 온기 바 */}
           <div className="mypage-temp-barwrap">
             <div className="mypage-temp-row">
               <span className="mypage-temp-label">나눔 온기</span>
@@ -212,14 +298,22 @@ export default function MyPage() {
               className="mypage-filter-btn"
               onClick={() => setFilterOpen(true)}
             >
-              {filterStatus} <span className="arrow">▾</span>
+              {mapStatusToKorean(filterStatus)}{" "}
+              <span className="arrow">▾</span>
             </button>
           </div>
+
+          {/* 찜 탭 로딩 상태 표시 (필요할 때만) */}
+          {activeTab === "wish" && loadingWish && (
+            <p className="mypage-loading-text">찜 목록을 불러오는 중이에요...</p>
+          )}
 
           {/* 리스트 */}
           <div className="mypage-item-grid">
             {filteredItems.map((item) => {
               const isLiked = !!item.wished;
+              const isReserved = item.status === "RESERVED";
+              const isSoldOut = item.status === "SOLD_OUT";
 
               return (
                 <div
@@ -233,14 +327,14 @@ export default function MyPage() {
                       src={item.img}
                       alt={item.title}
                       className={
-                        item.status === "예약중" || item.status === "판매완료"
+                        isReserved || isSoldOut
                           ? "mypage-card-img gray"
                           : "mypage-card-img"
                       }
                     />
 
-                    {/* 상태 스티커 (예약중 / 판매완료) */}
-                    {item.status === "예약중" && (
+                    {/* 상태 스티커 */}
+                    {isReserved && (
                       <img
                         src={stickerReserved}
                         alt="예약중"
@@ -248,7 +342,7 @@ export default function MyPage() {
                       />
                     )}
 
-                    {item.status === "판매완료" && (
+                    {isSoldOut && (
                       <img
                         src={stickerSoldout}
                         alt="판매완료"
@@ -260,7 +354,7 @@ export default function MyPage() {
                     <button
                       className="mypage-heart-btn"
                       onClick={(e) => {
-                        e.stopPropagation(); // 카드 전체 클릭(상세 이동) 막기
+                        e.stopPropagation();
                         toggleLike(item.id);
                       }}
                     >
@@ -299,19 +393,19 @@ export default function MyPage() {
                 <div className="mypage-filter-inner">
                   <button
                     className="mypage-filter-option"
-                    onClick={() => handleSelectFilter("판매중")}
+                    onClick={() => handleSelectFilter("ON_SALE")}
                   >
                     판매중
                   </button>
                   <button
                     className="mypage-filter-option"
-                    onClick={() => handleSelectFilter("예약중")}
+                    onClick={() => handleSelectFilter("RESERVED")}
                   >
                     예약중
                   </button>
                   <button
                     className="mypage-filter-option"
-                    onClick={() => handleSelectFilter("판매완료")}
+                    onClick={() => handleSelectFilter("SOLD_OUT")}
                   >
                     판매완료
                   </button>

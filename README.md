@@ -1,70 +1,119 @@
-# Getting Started with Create React App
+# SSAK3 Frontend
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+중고거래 플랫폼 SSAK3의 프론트엔드 애플리케이션입니다.
 
-## Available Scripts
+[![Netlify Status](https://api.netlify.com/api/v1/badges/c94a89d4-fc2c-4d4b-aa24-2b7633eff9b0/deploy-status)](https://app.netlify.com/projects/fancy-tanuki-129c30/deploys)
 
-In the project directory, you can run:
+## 🚀 배포 상태
 
-### `npm start`
+- **프론트엔드**: [Netlify](https://app.netlify.com/projects/fancy-tanuki-129c30)에 배포됨
+- **백엔드**: [Render](https://ssak3-backend.onrender.com)에 배포됨
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+## 📋 주요 기능
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+- 카카오 소셜 로그인
+- 상품 등록 및 조회
+- 카테고리별 상품 검색
+- 찜하기 기능
+- 실시간 채팅 (준비 중)
+- 마이페이지
 
-### `npm test`
+## 🛠️ 기술 스택
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+- **Frontend**: React 19.1.1
+- **Routing**: React Router DOM 7.9.2
+- **Build Tool**: Create React App
+- **Deployment**: Netlify
 
-### `npm run build`
+## 📦 설치 및 실행
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+### 필수 요구사항
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+- Node.js 16.x 이상
+- npm 또는 yarn
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+### 설치
 
-### `npm run eject`
+```bash
+npm install
+```
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+### 개발 서버 실행
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+```bash
+npm start
+```
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+개발 서버는 [http://localhost:3000](http://localhost:3000)에서 실행됩니다.
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+### 프로덕션 빌드
 
-## Learn More
+```bash
+npm run build
+```
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+빌드된 파일은 `build` 폴더에 생성됩니다.
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+## 🔧 환경 변수 설정
 
-### Code Splitting
+프로젝트 루트에 `.env` 파일을 생성하고 다음 변수들을 설정하세요:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+```env
+REACT_APP_API_URL=https://ssak3-backend.onrender.com
+REACT_APP_KAKAO_JAVASCRIPT_KEY=your-kakao-javascript-key
+REACT_APP_KAKAO_REDIRECT_URI=http://localhost:3000/auth/kakao/callback
+```
 
-### Analyzing the Bundle Size
+### 환경 변수 설명
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+- `REACT_APP_API_URL`: 백엔드 API 서버 URL
+- `REACT_APP_KAKAO_JAVASCRIPT_KEY`: 카카오 개발자 콘솔에서 발급받은 JavaScript 키
+- `REACT_APP_KAKAO_REDIRECT_URI`: 카카오 로그인 후 리다이렉트될 URI
 
-### Making a Progressive Web App
+## 📁 프로젝트 구조
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+```
+src/
+├── components/          # React 컴포넌트
+│   ├── MainPage.jsx     # 메인 페이지
+│   ├── MyPage.jsx       # 마이페이지
+│   ├── ProductDetailPage.jsx  # 상품 상세 페이지
+│   ├── ProductPostPage.jsx    # 상품 등록 페이지
+│   ├── LoginPage.jsx          # 로그인 페이지
+│   ├── KakaoCallbackPage.jsx  # 카카오 로그인 콜백
+│   └── ...
+├── config/             # 설정 파일
+│   └── api.js          # API 기본 URL 설정
+├── lib/                 # 유틸리티 함수
+│   ├── api.js          # API 요청 유틸리티
+│   └── products.js     # 상품 관련 유틸리티
+├── styles/             # CSS 스타일 파일
+└── image/              # 이미지 리소스
+```
 
-### Advanced Configuration
+## 🔗 API 연동
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+백엔드 API는 `src/config/api.js`에서 설정됩니다.
 
-### Deployment
+- **개발 환경**: `http://localhost:8080`
+- **프로덕션 환경**: `https://ssak3-backend.onrender.com`
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+환경 변수 `REACT_APP_API_URL`이 설정되어 있으면 해당 값을 우선 사용합니다.
 
-### `npm run build` fails to minify
+## 📝 배포 가이드
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+자세한 배포 가이드는 [NETLIFY_DEPLOYMENT.md](./NETLIFY_DEPLOYMENT.md)를 참고하세요.
+
+## 🧪 테스트
+
+```bash
+npm test
+```
+
+## 📄 라이선스
+
+이 프로젝트는 개인 프로젝트입니다.
+
+## 👥 기여
+
+이슈나 개선 사항이 있으면 이슈를 등록해주세요.

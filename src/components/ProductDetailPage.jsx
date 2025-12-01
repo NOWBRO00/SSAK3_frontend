@@ -23,6 +23,10 @@ import logo from "../image/Group 23.png";
 import backIcon from "../image/vector-33.png";
 import searchIcon from "../image/icon-search.png";
 
+// 🔌 공통 API BASE
+import { BASE_URL } from "../lib/api";
+
+
 // 🔹 더미 데이터
 import { MOCK_PRODUCTS } from "../data/mockProducts";
 
@@ -30,8 +34,22 @@ import { MOCK_PRODUCTS } from "../data/mockProducts";
 import loaderImg from "../image/loader.png";
 
 // ====== 백엔드 연동용 기본 설정 ======
-const API_BASE = "http://localhost:8080"; // 명세서 기준 서버 주소
-const USER_ID = 1; // TODO: 로그인 붙으면 실제 로그인 유저 ID로 교체
+const API_BASE = BASE_URL;
+
+// ✅ 사용자 ID 가져오기 (카카오 로그인)
+const getUserId = () => {
+  try {
+    const profileStr = localStorage.getItem("ssak3.profile");
+    if (profileStr) {
+      const profile = JSON.parse(profileStr);
+      return profile.id;
+    }
+  } catch (e) {
+    console.error("프로필 파싱 실패:", e);
+  }
+  return null;
+};
+
 
 const KRW = (n) =>
   typeof n === "number"
@@ -272,12 +290,16 @@ export default function ProductDetailPage() {
     setWishCount((c) => Math.max(0, c + (next ? 1 : -1)));
 
     try {
+      const userId = getUserId();
+      if (!userId) {
+        throw new Error("사용자 ID를 찾을 수 없습니다.");
+      }
       const res = await fetch(`${API_BASE}/api/likes`, {
         method: next ? "POST" : "DELETE",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
-          userId: USER_ID,
+          userId: userId,
           productId: p.id,
         }),
       });
@@ -297,13 +319,17 @@ export default function ProductDetailPage() {
   const startChat = useCallback(async () => {
     if (!p) return;
     try {
+      const userId = getUserId();
+      if (!userId) {
+        throw new Error("사용자 ID를 찾을 수 없습니다.");
+      }
       const res = await fetch(`${API_BASE}/api/chatrooms`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           productId: p.id,
-          buyerId: USER_ID,
+          buyerId: userId,
         }),
       });
       if (!res.ok) throw new Error("chat fail");

@@ -12,38 +12,59 @@ import ChatRoomPage from "./components/ChatRoomPage";
 import CategoryPage from "./components/CategoryPage";
 import BottomNav from "./components/BottomNav";
 import SearchPage from "./components/SearchPage";
-import ProductDetailPage from "./components/ProductDetailPage"; // ✅ 상세페이지
+import ProductDetailPage from "./components/ProductDetailPage";
+import KakaoCallbackPage from "./components/KakaoCallbackPage"; // ✅ 카카오 로그인 콜백 유지
 
 import { UnreadProvider } from "./state/UnreadContext";
 
 function App() {
-  // TODO: 나중에 실제 로그인 여부로 교체
-  const isLoggedIn = true;
+  // ✅ 실제 로그인 여부 확인 (localStorage의 토큰 확인)
+  const isLoggedIn = () => {
+    const token = localStorage.getItem("ssak3.accessToken");
+    return !!token; // 토큰이 있으면 로그인 상태
+  };
+  
+  const loggedIn = isLoggedIn();
 
   return (
     <UnreadProvider>
       <BrowserRouter>
         <Routes>
-          {/* 기본 진입은 로그인으로 */}
+          {/* 기본 진입: 로그인으로 이동 */}
           <Route path="/" element={<Navigate to="/login" replace />} />
 
-          {/* 인증 필요 없는 페이지 */}
+          {/* 인증 불필요 페이지 */}
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/auth/kakao/callback" element={<KakaoCallbackPage />} />
           <Route path="/welcome" element={<WelcomePage />} />
 
-          {/* 메인 / 마이 / 글쓰기 */}
+          {/* 메인 / 마이페이지 */}
           <Route
             path="/home"
-            element={isLoggedIn ? <MainPage /> : <Navigate to="/login" replace />}
+            element={
+              loggedIn ? <MainPage /> : <Navigate to="/login" replace />
+            }
           />
           <Route
             path="/mypage"
-            element={isLoggedIn ? <MyPage /> : <Navigate to="/login" replace />}
+            element={
+              loggedIn ? <MyPage /> : <Navigate to="/login" replace />
+            }
           />
+
+          {/* 상품 등록 */}
           <Route
             path="/post"
             element={
-              isLoggedIn ? <ProductPostPage /> : <Navigate to="/login" replace />
+              loggedIn ? <ProductPostPage /> : <Navigate to="/login" replace />
+            }
+          />
+
+          {/* 상품 수정: /product/:id/edit → ProductPostPage 재사용 */}
+          <Route
+            path="/product/:id/edit"
+            element={
+              loggedIn ? <ProductPostPage /> : <Navigate to="/login" replace />
             }
           />
 
@@ -51,7 +72,7 @@ function App() {
           <Route
             path="/chat"
             element={
-              isLoggedIn ? (
+              loggedIn ? (
                 <ChatListPage BottomNavComponent={BottomNav} />
               ) : (
                 <Navigate to="/login" replace />
@@ -61,7 +82,7 @@ function App() {
           <Route
             path="/chat/:roomId"
             element={
-              isLoggedIn ? <ChatRoomPage /> : <Navigate to="/login" replace />
+              loggedIn ? <ChatRoomPage /> : <Navigate to="/login" replace />
             }
           />
 
@@ -72,31 +93,41 @@ function App() {
           <Route path="/category" element={<CategoryPage />} />
           <Route path="/category/:name" element={<CategoryPage />} />
 
-          {/* ✅ 상품 상세페이지
-              - /product/:id 로 주로 사용할 것
-              - /detail/:id 도 같이 열리게 해 둠 (혹시 다른 곳에서 이 경로를 쓰고 있을 수 있어서)
-          */}
+          {/* 상품 상세 */}
           <Route
             path="/product/:id"
             element={
-              isLoggedIn ? <ProductDetailPage /> : <Navigate to="/login" replace />
+              loggedIn ? (
+                <ProductDetailPage />
+              ) : (
+                <Navigate to="/login" replace />
+              )
             }
           />
+          {/* 혹시 /detail/:id 를 쓰는 곳이 있으면 같이 열어주기 */}
           <Route
             path="/detail/:id"
             element={
-              isLoggedIn ? <ProductDetailPage /> : <Navigate to="/login" replace />
+              loggedIn ? (
+                <ProductDetailPage />
+              ) : (
+                <Navigate to="/login" replace />
+              )
             }
           />
-          {/* (선택) /detail 로만 들어오면 id 없는 버전도 열어주고 싶으면 아래 유지 */}
+          {/* /detail 단독 진입용 (옵션) */}
           <Route
             path="/detail"
             element={
-              isLoggedIn ? <ProductDetailPage /> : <Navigate to="/login" replace />
+              loggedIn ? (
+                <ProductDetailPage />
+              ) : (
+                <Navigate to="/login" replace />
+              )
             }
           />
 
-          {/* 나머지는 전부 로그인으로 보냄 */}
+          {/* 나머지 모든 경로는 로그인으로 보냄 */}
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </BrowserRouter>

@@ -5,15 +5,18 @@ import "../styles/ProductPostPage.css";
 import galleryIcon from "../image/gallery1.png";
 import BottomNav from "./BottomNav";
 
-// 백엔드 서버 주소 (명세서 기준)
-const API_BASE = "http://localhost:8080";
+// ✅ api.js에서 BASE_URL 가져오기
+import { BASE_URL } from "../lib/api";
 
-// 카테고리 코드 -> 백엔드 categoryName 매핑
-const CATEGORY_NAME_MAP = {
-  clothes: "의류",
-  books: "도서 / 문구",
-  appliances: "가전 / 주방",
-  helper: "도우미 / 기타",
+// ✅ 실제로 사용할 API_BASE
+const API_BASE = BASE_URL;
+
+// 프론트 카테고리 코드 -> 백엔드 categoryId(숫자) 매핑
+const CATEGORY_ID_MAP = {
+  clothes: 1, // 의류
+  books: 2, // 도서 / 문구
+  appliances: 3, // 가전 / 주방
+  helper: 4, // 도우미 / 기타
 };
 
 // 백엔드 categoryName -> 프론트 코드 매핑 (수정 모드에서 사용)
@@ -24,27 +27,37 @@ const CATEGORY_CODE_MAP = {
   "도우미 / 기타": "helper",
 };
 
-// 임시 판매자 ID (로그인 연동 전까지 사용)
-const MOCK_SELLER_ID = 1;
+// ✅ 판매자 ID 가져오기 (카카오 로그인)
+const getSellerId = () => {
+  try {
+    const profileStr = localStorage.getItem("ssak3.profile");
+    if (profileStr) {
+      const profile = JSON.parse(profileStr);
+      return profile.id;
+    }
+  } catch (e) {
+    console.error("프로필 파싱 실패:", e);
+  }
+  return null;
+};
 
 export default function ProductPostPage() {
-  const { id } = useParams();              // /product/:id/edit 인 경우 id 존재
+  const { id } = useParams(); // /product/:id/edit 인 경우 id 존재
   const navigate = useNavigate();
-  const isEdit = !!id;                     // true면 수정 모드, false면 등록 모드
+  const isEdit = !!id; // true면 수정 모드, false면 등록 모드
 
-  // 이미지: File + 미리보기 URL 같이 들고 있기
-  const [images, setImages] = useState([]); // [{ file, previewUrl }]
-  const [title, setTitle] = useState("");   // 제목
-  const [price, setPrice] = useState("");   // 가격(문자열 상태)
-  // clothes / books / appliances / helper
-  const [category, setCategory] = useState("");
-  const [details, setDetails] = useState(""); // 상세 내용
-  const [loading, setLoading] = useState(isEdit); // 수정모드면 로딩 true로 시작
+  // 상태값들
+  const [images, setImages] = useState([]); // [{ file, previewUrl, isExisting? }]
+  const [title, setTitle] = useState("");
+  const [price, setPrice] = useState("");
+  const [category, setCategory] = useState(""); // clothes / books / appliances / helper
+  const [details, setDetails] = useState("");
+  const [loading, setLoading] = useState(isEdit);
 
   const stripRef = useRef(null);
 
   // =========================
-  // 수정 모드일 때 기존 데이터 불러오기
+  // ✅ 수정 모드: 기존 상품 불러오기
   // =========================
   useEffect(() => {
     if (!isEdit) return;
@@ -52,20 +65,10 @@ export default function ProductPostPage() {
     const fetchProduct = async () => {
       try {
         setLoading(true);
+
         const res = await fetch(`${API_BASE}/api/products/${id}`);
         if (!res.ok) throw new Error("상품 조회 실패");
         const raw = await res.json();
-
-        // 명세서 기준 예시:
-        // {
-        //   id, title, description, price,
-        //   status: "ON_SALE" | "RESERVED" | "SOLD_OUT",
-        //   categoryName,
-        //   sellerId,
-        //   sellerNickname,
-        //   likeCount,
-        //   imageUrls: ["/uploads/a.jpg", ...]
-        // }
 
         setTitle(raw.title ?? "");
         setDetails(raw.description ?? "");
@@ -75,19 +78,21 @@ export default function ProductPostPage() {
             : ""
         );
 
-        const code = CATEGORY_CODE_MAP[raw.categoryName] || "";
+        const code = raw.categoryName
+          ? CATEGORY_CODE_MAP[raw.categoryName] || ""
+          : "";
         setCategory(code);
 
-        // 이미지: 일단 프리뷰용으로만 표시 (기존 이미지)
+        // 기존 이미지 → 프리뷰용 세팅
         if (Array.isArray(raw.imageUrls)) {
           const previewItems = raw.imageUrls.map((path) => {
             const fullUrl = path?.startsWith("http")
               ? path
               : `${API_BASE}${path.startsWith("/") ? path : `/${path}`}`;
             return {
-              file: null,        // 기존 파일은 없고, URL만 있는 상태
+              file: null, // 기존 이미지는 File 없음
               previewUrl: fullUrl,
-              isExisting: true,  // 기존 이미지 표시용 플래그 (선택적으로 활용 가능)
+              isExisting: true,
             };
           });
           setImages(previewItems);
@@ -103,7 +108,9 @@ export default function ProductPostPage() {
     fetchProduct();
   }, [isEdit, id]);
 
-  // 이미지 업로드 (최대 5장)
+  // =========================
+  // ✅ 이미지 업로드 (최대 5장)
+  // =========================
   const handleImageUpload = (e) => {
     const files = Array.from(e.target.files || []);
     if (images.length + files.length > 5) {
@@ -118,6 +125,7 @@ export default function ProductPostPage() {
 
     setImages((prev) => [...prev, ...newItems]);
 
+    // 마지막 이미지 쪽으로 스크롤
     requestAnimationFrame(() => {
       if (stripRef.current) {
         stripRef.current.scrollTo({
@@ -132,7 +140,6 @@ export default function ProductPostPage() {
     setImages((prev) => {
       const target = prev[idx];
       if (target && target.previewUrl && !target.isExisting) {
-        // 새로 올린 이미지에 대해서만 revoke (기존 URL은 브라우저가 관리)
         URL.revokeObjectURL(target.previewUrl);
       }
       return prev.filter((_, i) => i !== idx);
@@ -140,7 +147,7 @@ export default function ProductPostPage() {
   };
 
   // =========================
-  // 등록 / 수정 공통 submit
+  // ✅ 등록 / 수정 공통 submit
   // =========================
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -157,30 +164,21 @@ export default function ProductPostPage() {
       alert("카테고리를 선택해 주세요.");
       return;
     }
-    // 신규 등록일 때만 이미지 필수
     if (!isEdit && images.length === 0) {
       alert("상품 이미지를 한 장 이상 업로드해 주세요.");
       return;
     }
 
-    // 숫자만 추출해서 price 숫자형으로 변환
     const numericPrice = Number(price.replace(/[^0-9]/g, "") || 0);
-
-    // 선택된 카테고리 코드 -> 백엔드용 categoryName으로 변환
-    const categoryName = CATEGORY_NAME_MAP[category];
 
     try {
       if (isEdit) {
-        // =========================
-        // 수정 모드: PUT /api/products/{id}
-        // 이미지 수정은 명세에 없으니 텍스트 정보만 수정하는 것으로 가정
-        // =========================
+        // ✏️ 수정 모드: PUT /api/products/{id}
         const payload = {
           title: title.trim(),
           description: details.trim(),
           price: numericPrice,
-          // 필요하면 status도 함께 전송 가능
-          // status: "ON_SALE",
+          // status 등 나중에 필요하면 추가
         };
 
         console.log("✏️ [수정] 전송 payload:", payload);
@@ -198,34 +196,67 @@ export default function ProductPostPage() {
         alert("상품이 수정되었습니다.");
         navigate(`/product/${id}`);
       } else {
-        // =========================
-        // 신규 등록: POST /api/products/with-upload (FormData)
-        // =========================
+        // 🆕 신규 등록: POST /api/products/with-upload
         const formData = new FormData();
-        formData.append("title", title.trim());
-        formData.append("price", String(numericPrice));
-        formData.append("description", details.trim());
-        formData.append("categoryName", categoryName);
-        formData.append("sellerId", String(MOCK_SELLER_ID));
 
+        const categoryId = CATEGORY_ID_MAP[category];
+
+        if (!categoryId) {
+          alert("카테고리 ID 매핑에 문제가 있어요. 다시 선택해 주세요.");
+          return;
+        }
+
+        const sellerId = getSellerId();
+        if (!sellerId) {
+          alert("로그인이 필요합니다.");
+          navigate("/login");
+          return;
+        }
+
+        formData.append("title", title.trim());
+        formData.append("price", numericPrice); // Number
+        formData.append("description", details.trim());
+        formData.append("categoryId", categoryId); // Number 1~4
+        formData.append("sellerId", sellerId); // Number
+
+        // ✅ 여러 개면 루프 돌려서 images append
         images.forEach((item) => {
           if (item.file) {
             formData.append("images", item.file);
           }
         });
 
-        console.log("🆕 [등록] FormData 전송 예정");
+        // 디버깅용: 실제 전송 값 확인
+        for (const [key, value] of formData.entries()) {
+          console.log("📦 [등록] FormData:", key, value);
+        }
 
-        const res = await fetch(
-          `${API_BASE}/api/products/with-upload`,
-          {
-            method: "POST",
-            body: formData,
-          }
+        console.log(
+          "🆕 [등록] FormData 전송 예정:",
+          `${API_BASE}/api/products/with-upload`
         );
 
-        if (!res.ok) throw new Error("상품 등록 실패");
-        const created = await res.json();
+        const res = await fetch(`${API_BASE}/api/products/with-upload`, {
+          method: "POST",
+          body: formData, // FormData는 Content-Type 자동 설정
+        });
+
+        const text = await res.text();
+        console.log("📥 [등록] 응답 status:", res.status);
+        console.log("📥 [등록] 응답 body:", text);
+
+        if (!res.ok) {
+          throw new Error("상품 등록 실패");
+        }
+
+        let created;
+        try {
+          created = JSON.parse(text);
+        } catch {
+          created = null;
+        }
+
+        console.log("✅ 등록 결과:", created);
 
         alert("상품이 등록되었습니다.");
         if (created?.id) {
@@ -244,6 +275,9 @@ export default function ProductPostPage() {
     }
   };
 
+  // =========================
+  // 로딩 화면
+  // =========================
   if (loading) {
     return (
       <div className="app-shell">
@@ -264,6 +298,9 @@ export default function ProductPostPage() {
     );
   }
 
+  // =========================
+  // 실제 화면 렌더링
+  // =========================
   return (
     <div className="app-shell">
       <div className="app-frame">
@@ -276,7 +313,6 @@ export default function ProductPostPage() {
         </header>
 
         <main className="post-main">
-          {/* 폼 전체를 감싸서 submit 버튼으로 처리 */}
           <form onSubmit={handleSubmit}>
             {/* 이미지 업로드 */}
             <section className="image-upload-section">
@@ -290,7 +326,6 @@ export default function ProductPostPage() {
 
               <div className="image-carousel">
                 <div className="image-strip" ref={stripRef}>
-                  {/* 업로드 버튼(플레이스홀더) */}
                   {images.length < 5 && (
                     <label className="upload-thumb">
                       <input
@@ -305,7 +340,6 @@ export default function ProductPostPage() {
                     </label>
                   )}
 
-                  {/* 업로드 썸네일 */}
                   {images.map((item, i) => (
                     <div className="image-thumb" key={i}>
                       <span className="thumb-order">{i + 1}</span>
@@ -342,7 +376,17 @@ export default function ProductPostPage() {
                 type="text"
                 placeholder="가격을 입력해 주세요."
                 value={price}
-                onChange={(e) => setPrice(e.target.value)}
+                onChange={(e) => {
+                  // 숫자만 입력 허용
+                  const value = e.target.value.replace(/[^0-9]/g, "");
+                  setPrice(value);
+                }}
+                onKeyPress={(e) => {
+                  // 숫자가 아닌 키 입력 방지
+                  if (!/[0-9]/.test(e.key) && e.key !== "Backspace" && e.key !== "Delete" && e.key !== "ArrowLeft" && e.key !== "ArrowRight") {
+                    e.preventDefault();
+                  }
+                }}
               />
             </section>
 
@@ -380,6 +424,7 @@ export default function ProductPostPage() {
               </div>
             </section>
 
+            {/* 제출 버튼 */}
             <button className="submit-btn" type="submit">
               {isEdit ? "상품 수정" : "상품 등록"}
             </button>

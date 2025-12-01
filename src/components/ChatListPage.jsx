@@ -1,5 +1,5 @@
 // src/components/ChatListPage.jsx
-import React, { useMemo, useEffect } from "react";
+import React, { useMemo, useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import "../styles/ChatListPage.css";
 
@@ -7,19 +7,41 @@ import "../styles/ChatListPage.css";
 import { useUnread } from "../state/UnreadContext";
 import BottomNav from "./BottomNav";
 
-// 🔹 임시 채팅 1개 (unreadCount 값만 바꾸면 읽음/안읽음 테스트 가능)
+// 🔹 공통 API BASE
+import { BASE_URL } from "../lib/api";
+
+const API_BASE = BASE_URL;
+
+// ✅ 사용자 ID 가져오기 (카카오 로그인)
+const getUserId = () => {
+  try {
+    const profileStr = localStorage.getItem("ssak3.profile");
+    if (profileStr) {
+      const profile = JSON.parse(profileStr);
+      return profile.id;
+    }
+  } catch (e) {
+    console.error("프로필 파싱 실패:", e);
+  }
+  return null;
+};
+
+// 🔹 fallback용 임시 채팅
 const mockChats = [
   {
     id: "c1",
     peer: { nickname: "닉네임123" },
     lastMessage: "아직 판매 하고 계신가요?",
     lastMessageAt: "2025-11-03T07:00:00Z",
-    unreadCount: 4, // 0으로 바꾸면 '읽음 상태(흐리게)'가 됨
+    unreadCount: 4,
   },
 ];
 
 function formatKoreanDate(iso) {
+  if (!iso) return "";
   const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+
   const now = new Date();
   const sameDay =
     d.getFullYear() === now.getFullYear() &&
@@ -39,10 +61,69 @@ function formatKoreanDate(iso) {
 
 export default function ChatListPage() {
   const nav = useNavigate();
-  const chats = mockChats;
+  const { setUnreadTotal } = useUnread();
+
+  const [chats, setChats] = useState(mockChats);
+  const [loading, setLoading] = useState(true);
+
+  // ✅ 채팅 목록 로드 (백엔드 + mock fallback)
+  const loadChats = useCallback(async () => {
+    setLoading(true);
+    try {
+      // ✅ 실제로는 "사용자별 채팅방 목록" API에 맞춰서 URL만 바꾸면 됨
+      // 예: GET /api/chatrooms/user/{userId}
+      const userId = getUserId();
+      if (!userId) {
+        throw new Error("사용자 ID를 찾을 수 없습니다.");
+      }
+      const res = await fetch(`${API_BASE}/api/chatrooms/user/${userId}`, {
+        credentials: "include",
+      });
+
+      if (!res.ok) throw new Error("채팅 목록 조회 실패");
+
+      const rawList = await res.json();
+
+      // 🔹 백엔드 응답 예시 가정:
+      // [
+      //   {
+      //     "id": 1,
+      //     "roomId": 1,
+      //     "otherNickname": "닉네임123",
+      //     "lastMessage": "아직 판매 하고 계신가요?",
+      //     "lastMessageAt": "2025-11-03T07:00:00Z",
+      //     "unreadCount": 4
+      //   }
+      // ]
+      const mapped = rawList.map((raw) => ({
+        id: raw.id ?? raw.roomId, // 라우터에서 /chat/:roomId 로 사용
+        peer: {
+          nickname:
+            raw.otherNickname ||
+            raw.peerNickname ||
+            raw.sellerNickname ||
+            raw.buyerNickname ||
+            "상대방",
+        },
+        lastMessage: raw.lastMessage || raw.lastMessageContent || "",
+        lastMessageAt: raw.lastMessageAt || raw.updatedAt || raw.createdAt,
+        unreadCount: raw.unreadCount ?? 0,
+      }));
+
+      setChats(mapped);
+    } catch (e) {
+      console.warn("[ChatList] 백엔드 실패 → mock 사용", e);
+      setChats(mockChats);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadChats();
+  }, [loadChats]);
 
   // ✅ 전역 미읽음 합계
-  const { setUnreadTotal } = useUnread();
   const unreadTotal = useMemo(
     () => chats.reduce((sum, c) => sum + (c.unreadCount || 0), 0),
     [chats]
@@ -69,6 +150,10 @@ export default function ChatListPage() {
         </header>
 
         <main className="chat-main">
+          {loading && chats.length === 0 && (
+            <div className="chat-loading">채팅 목록을 불러오는 중이에요...</div>
+          )}
+
           <ul className="chat-list">
             {chats.map((c) => {
               const isRead = (c.unreadCount || 0) === 0;
@@ -78,7 +163,7 @@ export default function ChatListPage() {
                   key={c.id}
                   className={
                     "chat-item" + (isRead ? " chat-item--read" : "")
-                  } // ← 읽은 방이면 흐리게
+                  }
                   role="button"
                   aria-label={`${c.peer.nickname} 채팅방으로 이동`}
                   onClick={() => nav(`/chat/${c.id}`)}
@@ -96,7 +181,7 @@ export default function ChatListPage() {
                           : "last-message"
                       }
                     >
-                      {c.lastMessage}
+                      {c.lastMessage || "(메시지 없음)"}
                     </div>
                   </div>
 
