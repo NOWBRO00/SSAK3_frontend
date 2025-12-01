@@ -6,7 +6,7 @@ let API_BASE_URL;
 if (process.env.REACT_APP_API_URL) {
   API_BASE_URL = process.env.REACT_APP_API_URL;
 } else if (process.env.NODE_ENV === "production") {
-  API_BASE_URL = "https://ssak3-backend.onrender.com";
+  API_BASE_URL = "https://ssak3-backend-1.onrender.com";
 } else {
   API_BASE_URL = "http://localhost:8080";
 }
