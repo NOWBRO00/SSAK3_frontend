@@ -27,6 +27,14 @@ const CATEGORY_CODE_MAP = {
   "도우미 / 기타": "helper",
 };
 
+// 프론트 코드 -> 백엔드 categoryName 매핑 (등록 모드에서 사용)
+const CATEGORY_NAME_MAP = {
+  "clothes": "의류",
+  "books": "도서 / 문구",
+  "appliances": "가전 / 주방",
+  "helper": "도우미 / 기타",
+};
+
 // ✅ 판매자 ID 가져오기 (카카오 로그인)
 const getSellerId = () => {
   try {
@@ -53,8 +61,39 @@ export default function ProductPostPage() {
   const [category, setCategory] = useState(""); // clothes / books / appliances / helper
   const [details, setDetails] = useState("");
   const [loading, setLoading] = useState(isEdit);
+  const [categoryMap, setCategoryMap] = useState({}); // { "의류": 1, "도서 / 문구": 2, ... }
 
   const stripRef = useRef(null);
+
+  // =========================
+  // ✅ 카테고리 목록 가져오기 (백엔드에서 동적으로)
+  // =========================
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/categories`);
+        if (!res.ok) {
+          console.warn("카테고리 목록 가져오기 실패, 기본값 사용");
+          return;
+        }
+        const categories = await res.json();
+        
+        // 카테고리 이름 -> ID 매핑 생성
+        const map = {};
+        categories.forEach((cat) => {
+          if (cat.name && cat.id) {
+            map[cat.name] = cat.id;
+          }
+        });
+        setCategoryMap(map);
+        console.log("✅ 카테고리 매핑:", map);
+      } catch (e) {
+        console.error("카테고리 목록 가져오기 오류:", e);
+      }
+    };
+
+    fetchCategories();
+  }, []);
 
   // =========================
   // ✅ 수정 모드: 기존 상품 불러오기
@@ -199,12 +238,24 @@ export default function ProductPostPage() {
         // 🆕 신규 등록: POST /api/products/with-upload
         const formData = new FormData();
 
-        const categoryId = CATEGORY_ID_MAP[category];
-
-        if (!categoryId) {
-          alert("카테고리 ID 매핑에 문제가 있어요. 다시 선택해 주세요.");
+        // ✅ 카테고리 코드(clothes, books 등) -> 한글 이름 -> ID 찾기
+        const categoryName = CATEGORY_NAME_MAP[category];
+        
+        if (!categoryName) {
+          console.error("카테고리 이름 변환 실패:", category);
+          alert("카테고리를 다시 선택해주세요.");
           return;
         }
+
+        const categoryId = categoryMap[categoryName];
+
+        if (!categoryId) {
+          console.error("카테고리 ID 매핑 실패:", { category, categoryName, categoryMap });
+          alert("카테고리 ID를 찾을 수 없습니다. 페이지를 새로고침하고 다시 시도해주세요.");
+          return;
+        }
+
+        console.log("✅ 카테고리 매핑 성공:", { category, categoryName, categoryId });
 
         const sellerId = getSellerId();
         if (!sellerId) {
