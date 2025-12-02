@@ -90,28 +90,26 @@ export default function ChatRoomPage() {
       // 백엔드 명세: GET /api/chatrooms/{chatRoomId}
       const url = `${API_BASE}/api/chatrooms/${roomId}`;
       
-      if (process.env.NODE_ENV === "development") {
-        console.log("[채팅방 정보] 조회 시작:", url, { roomId });
-      }
+      // 프로덕션에서도 로그 확인 가능하도록
+      console.log("[채팅방 정보] 조회 시작:", url, { roomId });
       
       const res = await fetch(url, {
         credentials: "include",
       });
 
+      console.log("[채팅방 정보] 응답 상태:", res.status, res.statusText);
+
       if (!res.ok) {
         const errorText = await res.text();
-        if (process.env.NODE_ENV === "development") {
-          console.error("[채팅방 정보] 조회 실패:", res.status, errorText);
-        }
+        console.error("[채팅방 정보] 조회 실패:", res.status, errorText);
         throw new Error(`채팅방 정보 조회 실패: ${res.status}`);
       }
 
       const data = await res.json();
       const userId = getUserId();
       
-      if (process.env.NODE_ENV === "development") {
-        console.log("[채팅방 정보] 조회 성공:", data);
-      }
+      console.log("[채팅방 정보] 조회 성공:", data);
+      console.log("[채팅방 정보] 현재 사용자 ID:", userId);
 
         // 백엔드 응답 구조:
         // { id, buyerId, sellerId, productId, buyer: {id, kakaoId, nickname, ...}, seller: {...}, product: {...} }
