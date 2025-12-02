@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import "../styles/MainPage.css";
+import { BASE_URL } from "../lib/api";
 
 // 상단 로고
 import logoImg from "../image/Group 23.png";
@@ -123,17 +124,26 @@ export default function MainPage() {
         console.log("[메인] 찜 목록 조회 성공:", likes?.length || 0, "개");
       }
 
-      const mapped = (likes || []).map((raw) => ({
-        id: raw.productId,
-        // 카테고리 정보는 이 응답에 없으므로 비워두거나 "찜한 상품" 등으로 표기 가능
-        category: "",
-        title: raw.title,
-        price: raw.price,
-        liked: true,
-        // 상태 정보도 없으므로 기본값 ON_SALE로 둠
-        status: "ON_SALE",
-        img: buildImageUrl(raw.imageUrl),
-      }));
+      // API 응답 형식: [{id, user, product, ...}] 또는 [{productId, title, price, imageUrl, ...}]
+      const mapped = (likes || []).map((raw) => {
+        // 백엔드 응답 형식에 따라 product 객체가 있을 수도 있고 없을 수도 있음
+        const product = raw.product || raw;
+        const productId = product.id || raw.productId || raw.id;
+        const title = product.title || raw.title || "";
+        const price = product.price != null ? product.price : (raw.price != null ? raw.price : 0);
+        const imageUrl = product.imageUrls?.[0] || product.imageUrl || raw.imageUrl || "";
+        const categoryName = product.categoryName || product.category?.name || raw.categoryName || "";
+        
+        return {
+          id: productId,
+          category: categoryName,
+          title: title,
+          price: price,
+          liked: true,
+          status: product.status || raw.status || "ON_SALE",
+          img: buildImageUrl(imageUrl),
+        };
+      });
 
       setLikedList(mapped);
     } catch (e) {
@@ -152,17 +162,113 @@ export default function MainPage() {
     loadLikedList();
   }, [loadRecommended, loadLikedList]);
 
-  const toggleLikeRecommended = (id) => {
+  // ✅ 찜 토글 (추천 상품) - API 요청 포함
+  const toggleLikeRecommended = useCallback(async (productId) => {
+    const product = recommended.find((p) => p.id === productId);
+    if (!product) return;
+    
+    const next = !product.liked;
+    
+    // Optimistic 업데이트
     setRecommended((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, liked: !p.liked } : p))
+      prev.map((p) => (p.id === productId ? { ...p, liked: next } : p))
     );
-  };
+    
+    try {
+      const userId = getUserId();
+      if (!userId) {
+        throw new Error("사용자 ID를 찾을 수 없습니다.");
+      }
+      
+      const url = `${BASE_URL}/api/likes?userId=${userId}&productId=${productId}`;
+      
+      if (process.env.NODE_ENV === "development") {
+        console.log(`[메인 추천] 찜 ${next ? "추가" : "취소"}:`, url);
+      }
+      
+      const res = await fetch(url, {
+        method: next ? "POST" : "DELETE",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+      });
+      
+      if (!res.ok) {
+        throw new Error("찜 실패");
+      }
+      
+      if (process.env.NODE_ENV === "development") {
+        console.log(`[메인 추천] 찜 ${next ? "추가" : "취소"} 성공`);
+      }
+      
+      // 찜 추가 시 찜 목록 갱신
+      if (next) {
+        loadLikedList();
+      }
+    } catch (e) {
+      if (process.env.NODE_ENV === "development") {
+        console.error("[메인 추천] 찜 오류:", e);
+      }
+      // 롤백
+      setRecommended((prev) =>
+        prev.map((p) => (p.id === productId ? { ...p, liked: !next } : p))
+      );
+      alert("찜에 실패했어요. 잠시 후 다시 시도해 주세요.");
+    }
+  }, [recommended, loadLikedList]);
 
-  const toggleLikeLiked = (id) => {
+  // ✅ 찜 토글 (찜 목록) - API 요청 포함
+  const toggleLikeLiked = useCallback(async (productId) => {
+    const product = likedList.find((p) => p.id === productId);
+    if (!product) return;
+    
+    const next = !product.liked;
+    
+    // Optimistic 업데이트
     setLikedList((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, liked: !p.liked } : p))
+      prev.map((p) => (p.id === productId ? { ...p, liked: next } : p))
     );
-  };
+    
+    try {
+      const userId = getUserId();
+      if (!userId) {
+        throw new Error("사용자 ID를 찾을 수 없습니다.");
+      }
+      
+      const url = `${BASE_URL}/api/likes?userId=${userId}&productId=${productId}`;
+      
+      if (process.env.NODE_ENV === "development") {
+        console.log(`[메인 찜목록] 찜 ${next ? "추가" : "취소"}:`, url);
+      }
+      
+      const res = await fetch(url, {
+        method: next ? "POST" : "DELETE",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+      });
+      
+      if (!res.ok) {
+        throw new Error("찜 실패");
+      }
+      
+      if (process.env.NODE_ENV === "development") {
+        console.log(`[메인 찜목록] 찜 ${next ? "추가" : "취소"} 성공`);
+      }
+      
+      // 찜 취소 시 목록에서 제거
+      if (!next) {
+        setLikedList((prev) => prev.filter((p) => p.id !== productId));
+      }
+    } catch (e) {
+      if (process.env.NODE_ENV === "development") {
+        console.error("[메인 찜목록] 찜 오류:", e);
+      }
+      // 롤백
+      setLikedList((prev) =>
+        prev.map((p) => (p.id === productId ? { ...p, liked: !next } : p))
+      );
+      alert("찜에 실패했어요. 잠시 후 다시 시도해 주세요.");
+    }
+  }, [likedList]);
 
   return (
     <div className="home-shell">

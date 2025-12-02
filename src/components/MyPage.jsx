@@ -97,16 +97,28 @@ export default function MyPage() {
         const res = await fetch(`${API_BASE}/api/likes/user/${userId}`);
         if (!res.ok) throw new Error("찜 목록 조회 실패");
 
-        const rawList = await res.json(); // 예시: [{ productId, title, price, imageUrl }]
-        const mapped = rawList.map((w) => ({
-          id: w.productId,
-          title: w.title || "",
-          price: w.price != null ? Number(w.price) : 0, // 안전하게 처리
-          img: buildImageUrl(w.imageUrl),
-          category: w.categoryName || "", // 나중에 백엔드가 붙여주면 사용
-          status: "ON_SALE", // 👍 likes 응답엔 상태가 없어서 기본값
-          wished: true,
-        }));
+        const rawList = await res.json();
+        
+        // API 응답 형식: [{id, user, product, ...}] 또는 [{productId, title, price, imageUrl, ...}]
+        const mapped = rawList.map((w) => {
+          // 백엔드 응답 형식에 따라 product 객체가 있을 수도 있고 없을 수도 있음
+          const product = w.product || w;
+          const productId = product.id || w.productId || w.id;
+          const title = product.title || w.title || "";
+          const price = product.price != null ? product.price : (w.price != null ? Number(w.price) : 0);
+          const imageUrl = product.imageUrls?.[0] || product.imageUrl || w.imageUrl || "";
+          const categoryName = product.categoryName || product.category?.name || w.categoryName || "";
+          
+          return {
+            id: productId,
+            title: title,
+            price: price,
+            img: buildImageUrl(imageUrl),
+            category: categoryName,
+            status: product.status || w.status || "ON_SALE",
+            wished: true,
+          };
+        });
 
         setWishItems(mapped);
       } catch (e) {
@@ -118,14 +130,31 @@ export default function MyPage() {
     };
 
     loadWish();
+    
+    // 찜 목록 갱신 이벤트 리스너
+    const handleWishListUpdate = () => {
+      loadWish();
+    };
+    
+    window.addEventListener('wishListUpdated', handleWishListUpdate);
+    return () => {
+      window.removeEventListener('wishListUpdated', handleWishListUpdate);
+    };
   }, []);
 
   // 선택된 탭에 따라 보여줄 base 리스트
   const baseList = activeTab === "my" ? myItems : wishItems;
 
-  // ✅ 선택된 status(enum)만 필터링
+  // ✅ 선택된 status(enum)만 필터링 + 안전한 데이터 필터링
   const filteredItems = useMemo(
-    () => baseList.filter((item) => item.status === filterStatus),
+    () => baseList
+      .filter((item) => item && item.status === filterStatus)
+      .map((item) => ({
+        ...item,
+        price: item.price != null ? (typeof item.price === 'number' ? item.price : Number(item.price) || 0) : 0,
+        title: item.title || "",
+        category: item.category || "",
+      })),
     [baseList, filterStatus]
   );
 
@@ -323,11 +352,13 @@ export default function MyPage() {
 
                   <div className="mypage-card-info">
                     <div className="mypage-card-category">
-                      {item.category}
+                      {item?.category || ""}
                     </div>
-                    <div className="mypage-card-title">{item.title}</div>
+                    <div className="mypage-card-title">{item?.title || ""}</div>
                     <div className="mypage-card-price">
-                      {item.price != null ? item.price.toLocaleString() : "0"} <span>원</span>
+                      {item?.price != null && typeof item.price === 'number' 
+                        ? item.price.toLocaleString() 
+                        : (item?.price != null ? String(item.price) : "0")} <span>원</span>
                     </div>
                   </div>
                 </div>

@@ -302,6 +302,12 @@ export default function ProductDetailPage() {
           console.log("[찜 성공] 응답 데이터:", data);
         }
       }
+      
+      // 찜 추가 성공 시 페이지 새로고침 없이 목록 갱신을 위해 이벤트 발생
+      // (다른 페이지에서 찜 목록을 갱신할 수 있도록)
+      if (next) {
+        window.dispatchEvent(new CustomEvent('wishListUpdated'));
+      }
     } catch (e) {
       if (process.env.NODE_ENV === "development") {
         console.error("[찜 오류]:", e);
