@@ -70,17 +70,7 @@ export default function MyPage() {
   const [filterStatus, setFilterStatus] = useState("ON_SALE");
 
   // ✅ 카카오 로그인 사용자 정보 가져오기
-  const profile = useMemo(() => {
-    try {
-      const profileStr = localStorage.getItem("ssak3.profile");
-      if (profileStr) {
-        return JSON.parse(profileStr);
-      }
-    } catch (e) {
-      console.error("프로필 파싱 실패:", e);
-    }
-    return null;
-  }, []);
+  const profile = getUserProfile();
 
   // TODO: 나중에 백엔드 연동
   const temperature = 55.7;
