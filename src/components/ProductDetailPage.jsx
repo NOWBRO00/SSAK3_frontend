@@ -389,12 +389,12 @@ export default function ProductDetailPage() {
     mannerTemp < 36 ? "low" : mannerTemp < 60 ? "mid" : "high";
 
   // ====== 내 상품인지 확인 ======
-  // 백엔드 응답 구조에 따라 sellerId가 카카오 ID일 수도 있고, 백엔드 내부 ID일 수도 있음
-  // seller 객체에 kakaoId가 별도로 있을 수도 있으므로 모든 경우를 확인
+  // 백엔드가 sellerId(내부 ID)와 sellerKakaoId(카카오 ID)를 모두 제공함
+  // 프론트엔드에서는 카카오 ID로 비교하므로 sellerKakaoId를 우선적으로 사용
   const userId = getUserId(); // 카카오 ID
-  const sellerBackendId = p?.seller?.id; // 백엔드 내부 사용자 ID 또는 카카오 ID
-  const sellerKakaoId = p?.seller?.kakaoId; // 카카오 ID (있는 경우)
-  const rawSellerId = p?.sellerId; // 원본 sellerId (직접 비교용)
+  const sellerKakaoId = p?.sellerKakaoId || p?.seller?.kakaoId; // 백엔드에서 제공하는 카카오 ID
+  const sellerBackendId = p?.seller?.id; // 백엔드 내부 사용자 ID (참고용)
+  const rawSellerId = p?.sellerId; // 원본 sellerId (참고용)
   
   // 비교 헬퍼 함수
   const compareIds = (id1, id2) => {
