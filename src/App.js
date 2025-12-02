@@ -17,15 +17,21 @@ import KakaoCallbackPage from "./components/KakaoCallbackPage"; // ✅ 카카오
 
 import { UnreadProvider } from "./state/UnreadContext";
 
-function App() {
-  // ✅ 실제 로그인 여부 확인 (localStorage의 토큰 확인)
-  const isLoggedIn = () => {
-    const token = localStorage.getItem("ssak3.accessToken");
-    return !!token; // 토큰이 있으면 로그인 상태
-  };
-  
-  const loggedIn = isLoggedIn();
+// ✅ 실제 로그인 여부 확인 (localStorage의 토큰 확인)
+const isLoggedIn = () => {
+  const token = localStorage.getItem("ssak3.accessToken");
+  return !!token; // 토큰이 있으면 로그인 상태
+};
 
+// ✅ 보호된 라우트 컴포넌트
+const ProtectedRoute = ({ children }) => {
+  if (isLoggedIn()) {
+    return children;
+  }
+  return <Navigate to="/login" replace />;
+};
+
+function App() {
   return (
     <UnreadProvider>
       <BrowserRouter>
@@ -42,13 +48,17 @@ function App() {
           <Route
             path="/home"
             element={
-              loggedIn ? <MainPage /> : <Navigate to="/login" replace />
+              <ProtectedRoute>
+                <MainPage />
+              </ProtectedRoute>
             }
           />
           <Route
             path="/mypage"
             element={
-              loggedIn ? <MyPage /> : <Navigate to="/login" replace />
+              <ProtectedRoute>
+                <MyPage />
+              </ProtectedRoute>
             }
           />
 
@@ -56,7 +66,9 @@ function App() {
           <Route
             path="/post"
             element={
-              loggedIn ? <ProductPostPage /> : <Navigate to="/login" replace />
+              <ProtectedRoute>
+                <ProductPostPage />
+              </ProtectedRoute>
             }
           />
 
@@ -64,7 +76,9 @@ function App() {
           <Route
             path="/product/:id/edit"
             element={
-              loggedIn ? <ProductPostPage /> : <Navigate to="/login" replace />
+              <ProtectedRoute>
+                <ProductPostPage />
+              </ProtectedRoute>
             }
           />
 
@@ -72,17 +86,17 @@ function App() {
           <Route
             path="/chat"
             element={
-              loggedIn ? (
+              <ProtectedRoute>
                 <ChatListPage BottomNavComponent={BottomNav} />
-              ) : (
-                <Navigate to="/login" replace />
-              )
+              </ProtectedRoute>
             }
           />
           <Route
             path="/chat/:roomId"
             element={
-              loggedIn ? <ChatRoomPage /> : <Navigate to="/login" replace />
+              <ProtectedRoute>
+                <ChatRoomPage />
+              </ProtectedRoute>
             }
           />
 
@@ -97,33 +111,27 @@ function App() {
           <Route
             path="/product/:id"
             element={
-              loggedIn ? (
+              <ProtectedRoute>
                 <ProductDetailPage />
-              ) : (
-                <Navigate to="/login" replace />
-              )
+              </ProtectedRoute>
             }
           />
           {/* 혹시 /detail/:id 를 쓰는 곳이 있으면 같이 열어주기 */}
           <Route
             path="/detail/:id"
             element={
-              loggedIn ? (
+              <ProtectedRoute>
                 <ProductDetailPage />
-              ) : (
-                <Navigate to="/login" replace />
-              )
+              </ProtectedRoute>
             }
           />
           {/* /detail 단독 진입용 (옵션) */}
           <Route
             path="/detail"
             element={
-              loggedIn ? (
+              <ProtectedRoute>
                 <ProductDetailPage />
-              ) : (
-                <Navigate to="/login" replace />
-              )
+              </ProtectedRoute>
             }
           />
 
