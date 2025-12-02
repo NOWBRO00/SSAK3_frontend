@@ -103,6 +103,17 @@ export default function ChatListPage() {
 
   useEffect(() => {
     loadChats();
+    
+    // 채팅방 생성 이벤트 리스너
+    const handleChatroomCreated = () => {
+      loadChats();
+    };
+    
+    window.addEventListener('chatroomCreated', handleChatroomCreated);
+    
+    return () => {
+      window.removeEventListener('chatroomCreated', handleChatroomCreated);
+    };
   }, [loadChats]);
 
   // ✅ 전역 미읽음 합계

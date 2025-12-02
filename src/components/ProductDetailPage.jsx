@@ -388,6 +388,10 @@ export default function ProductDetailPage() {
       
       const data = await res.json();
       const roomId = data.roomId ?? data.id;
+      
+      // 채팅방 생성 성공 시 채팅 목록 갱신 이벤트 발생
+      window.dispatchEvent(new CustomEvent('chatroomCreated'));
+      
       if (roomId) {
         nav(`/chat/${roomId}`);
       } else {

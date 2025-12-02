@@ -4,6 +4,7 @@ import React, {
   useEffect,
   useRef,
   useState,
+  useCallback,
 } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import BottomNav from "./BottomNav";
@@ -13,10 +14,12 @@ import camIcon from "../image/icon_camera.png";
 import sendIcon from "../image/icon_send.png";
 // import warningIcon from "../image/warning_mark.png"; // 파일이 없으므로 CSS로 대체
 
-// 나중에 실서버 붙일 때 여기서 BASE_URL / USER_ID 가져다 쓰면 됨
-// import { BASE_URL } from "../lib/api";
-// const API_BASE = BASE_URL;
-// const USER_ID = 1;
+// ✅ 백엔드 API 연동
+import { BASE_URL } from "../lib/api";
+import { getUserId } from "../utils/auth";
+import { buildImageUrl } from "../lib/products";
+
+const API_BASE = BASE_URL;
 
 function formatKoreanTime(dateLike) {
   const d = new Date(dateLike);
@@ -45,39 +48,22 @@ export default function ChatRoomPage() {
   const roomId = id || "temp";
   const nav = useNavigate();
 
-  // 🔹 채팅방 메타(상대, 상품) – 지금은 mock, 나중에 API로 교체
-  const [roomMeta] = useState({
+  // ✅ 채팅방 메타(상대, 상품) - 백엔드에서 가져오기
+  const [roomMeta, setRoomMeta] = useState({
     roomId,
-    peer: { id: "peer-1", nickname: "닉네임12345" },
+    peer: { id: null, nickname: "로딩 중..." },
     product: {
-      id: 3,
-      title: "00자전거 팝니다 사실 분",
-      price: 5_350_000,
+      id: null,
+      title: "",
+      price: 0,
       thumbUrl: "",
     },
   });
+  const [loadingRoom, setLoadingRoom] = useState(true);
 
-  // 🔹 메시지 목록 – 지금은 로컬 상태, 나중에 WebSocket / 폴링으로 교체
-  const [messages, setMessages] = useState([
-    {
-      id: "m1",
-      roomId,
-      senderId: "peer-1",
-      type: "text",
-      text: "안녕하세요 혹시 물건 거래 가능 할까요?\n가격은 대충 얼마정도 아니면 음.. 한 얼마 얼마 생각 중인데요..",
-      createdAt: "2025-08-16T13:06:00+09:00",
-      sendStatus: "sent",
-    },
-    {
-      id: "m2",
-      roomId,
-      senderId: "me",
-      type: "text",
-      text: "네 가능합니다! 안녕하세요를 너무 적은 거 같은데,,ㅎㅎ",
-      createdAt: "2025-08-16T13:08:00+09:00",
-      sendStatus: "sent",
-    },
-  ]);
+  // ✅ 메시지 목록 - 백엔드에서 가져오기
+  const [messages, setMessages] = useState([]);
+  const [loadingMessages, setLoadingMessages] = useState(true);
 
   const [text, setText] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
@@ -89,6 +75,130 @@ export default function ChatRoomPage() {
   const listRef = useRef(null);
   const bottomRef = useRef(null);
   const fileInputRef = useRef(null);
+  const pollingIntervalRef = useRef(null);
+
+  // ✅ 채팅방 정보 로드
+  useEffect(() => {
+    const loadRoomInfo = async () => {
+      if (!roomId || roomId === "temp") {
+        setLoadingRoom(false);
+        return;
+      }
+
+      try {
+        const res = await fetch(`${API_BASE}/api/chatrooms/${roomId}`, {
+          credentials: "include",
+        });
+
+        if (!res.ok) {
+          throw new Error("채팅방 정보 조회 실패");
+        }
+
+        const data = await res.json();
+        const userId = getUserId();
+
+        // 상대방 정보 찾기 (seller 또는 buyer 중 현재 사용자가 아닌 사람)
+        const sellerId = data.sellerId || data.seller?.id;
+        const buyerId = data.buyerId || data.buyer?.id;
+        const isBuyer = userId && (String(buyerId) === String(userId) || String(data.buyerKakaoId) === String(userId));
+        
+        const peerId = isBuyer ? sellerId : buyerId;
+        const peerNickname = isBuyer 
+          ? (data.sellerNickname || data.seller?.nickname || "판매자")
+          : (data.buyerNickname || data.buyer?.nickname || "구매자");
+
+        setRoomMeta({
+          roomId: data.id || data.roomId || roomId,
+          peer: {
+            id: peerId,
+            nickname: peerNickname,
+          },
+          product: {
+            id: data.productId || data.product?.id,
+            title: data.productTitle || data.product?.title || "",
+            price: data.productPrice || data.product?.price || 0,
+            thumbUrl: data.productImageUrl || data.product?.imageUrls?.[0] || "",
+          },
+        });
+      } catch (e) {
+        if (process.env.NODE_ENV === "development") {
+          console.error("[채팅방 정보 조회 실패]:", e);
+        }
+      } finally {
+        setLoadingRoom(false);
+      }
+    };
+
+    loadRoomInfo();
+  }, [roomId]);
+
+  // ✅ 메시지 목록 로드
+  const loadMessages = useCallback(async () => {
+    if (!roomId || roomId === "temp") {
+      setLoadingMessages(false);
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API_BASE}/api/chatrooms/${roomId}/messages`, {
+        credentials: "include",
+      });
+
+      if (!res.ok) {
+        throw new Error("메시지 목록 조회 실패");
+      }
+
+      const rawList = await res.json();
+      const userId = getUserId();
+
+      const mapped = (Array.isArray(rawList) ? rawList : []).map((raw) => {
+        const senderId = raw.senderId || raw.sender?.id || raw.userId;
+        const isMe = userId && (
+          String(senderId) === String(userId) ||
+          String(raw.senderKakaoId) === String(userId) ||
+          String(raw.userKakaoId) === String(userId)
+        );
+
+        return {
+          id: raw.id || raw.messageId,
+          roomId: raw.roomId || raw.chatroomId || roomId,
+          senderId: isMe ? "me" : (senderId || "peer"),
+          type: raw.type || "text",
+          text: raw.content || raw.text || raw.message || "",
+          media: raw.mediaUrl || raw.imageUrl ? {
+            url: buildImageUrl(raw.mediaUrl || raw.imageUrl),
+          } : undefined,
+          createdAt: raw.createdAt || raw.sentAt || new Date().toISOString(),
+          sendStatus: "sent",
+        };
+      });
+
+      setMessages(mapped);
+    } catch (e) {
+      if (process.env.NODE_ENV === "development") {
+        console.error("[메시지 목록 조회 실패]:", e);
+      }
+      setMessages([]);
+    } finally {
+      setLoadingMessages(false);
+    }
+  }, [roomId]);
+
+  // ✅ 초기 메시지 로드 및 폴링
+  useEffect(() => {
+    loadMessages();
+
+    // 3초마다 새 메시지 확인 (폴링)
+    pollingIntervalRef.current = setInterval(() => {
+      loadMessages();
+    }, 3000);
+
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+      }
+    };
+  }, [loadMessages]);
 
   // 🔹 새 메시지 들어올 때마다 맨 아래로 스크롤
   useEffect(() => {
@@ -99,11 +209,11 @@ export default function ChatRoomPage() {
 
   const canSend = text.trim().length > 0 && !uploading;
 
-  // 🔹 텍스트 메시지 전송 (지금은 프론트에서만 optimistic)
-  const handleSend = () => {
+  // ✅ 텍스트 메시지 전송 - 백엔드 API 연동
+  const handleSend = async () => {
     if (!canSend) return;
     const content = text.trim();
-    setText("");
+    if (!content) return;
 
     const tempId = "tmp_" + Date.now();
     const optimistic = {
@@ -116,14 +226,57 @@ export default function ChatRoomPage() {
       createdAt: new Date().toISOString(),
       sendStatus: "sending",
     };
+    setText("");
     setMessages((p) => [...p, optimistic]);
 
-    // 나중에 여기서 실제 POST / 메시지 전송 후 상태 업데이트
-    setTimeout(() => {
+    try {
+      const userId = getUserId();
+      if (!userId) {
+        throw new Error("로그인이 필요합니다.");
+      }
+
+      const params = new URLSearchParams();
+      params.append("roomId", roomId);
+      params.append("senderId", userId);
+      params.append("content", content);
+
+      const res = await fetch(`${API_BASE}/api/chatrooms/${roomId}/messages?${params.toString()}`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      if (!res.ok) {
+        throw new Error("메시지 전송 실패");
+      }
+
+      const data = await res.json();
+      
+      // 성공 시 optimistic 메시지를 실제 메시지로 교체
       setMessages((p) =>
-        p.map((m) => (m.id === tempId ? { ...m, sendStatus: "sent" } : m))
+        p.map((m) =>
+          m.id === tempId
+            ? {
+                ...m,
+                id: data.id || data.messageId || tempId,
+                sendStatus: "sent",
+              }
+            : m
+        )
       );
-    }, 400);
+
+      // 메시지 목록 새로고침 (백엔드에서 최신 상태 가져오기)
+      setTimeout(() => {
+        loadMessages();
+      }, 500);
+    } catch (e) {
+      if (process.env.NODE_ENV === "development") {
+        console.error("[메시지 전송 실패]:", e);
+      }
+      // 실패 시 optimistic 메시지 제거
+      setMessages((p) => p.filter((m) => m.id !== tempId));
+      alert("메시지 전송에 실패했습니다.");
+    }
   };
 
   // 🔹 파일 첨부(갤러리)로 이미지/동영상 전송
