@@ -124,6 +124,8 @@ export default function ProductDetailPage() {
               ? raw.mannerTemperature
               : DEFAULT_MANNER_TEMP,
         },
+        // 원본 sellerId도 저장 (직접 비교용)
+        sellerId: raw.sellerId,
         isWishlisted: !!raw.isWishlisted,
         wishCount: raw.likeCount ?? 0,
         created_at: raw.createdAt,
@@ -386,29 +388,49 @@ export default function ProductDetailPage() {
     mannerTemp < 36 ? "low" : mannerTemp < 60 ? "mid" : "high";
 
   // ====== 내 상품인지 확인 ======
-  // 마이페이지에서 /api/products/seller/${카카오ID}로 조회하므로, 
-  // 백엔드가 카카오 ID를 그대로 사용하는 것으로 보임
-  // 따라서 raw.sellerId가 카카오 ID일 가능성이 높음
+  // 백엔드 응답 구조에 따라 sellerId가 카카오 ID일 수도 있고, 백엔드 내부 ID일 수도 있음
+  // seller 객체에 kakaoId가 별도로 있을 수도 있으므로 모든 경우를 확인
   const userId = getUserId(); // 카카오 ID
-  const sellerId = p?.seller?.id; // 백엔드 응답의 sellerId (카카오 ID일 가능성 높음)
+  const sellerBackendId = p?.seller?.id; // 백엔드 내부 사용자 ID 또는 카카오 ID
+  const sellerKakaoId = p?.seller?.kakaoId; // 카카오 ID (있는 경우)
+  const rawSellerId = p?.sellerId; // 원본 sellerId (직접 비교용)
   
-  // 숫자/문자열 모두 비교 가능하도록 안전하게 비교
-  const isMyProduct = userId && sellerId && (
-    sellerId === userId || 
-    String(sellerId) === String(userId) ||
-    Number(sellerId) === Number(userId)
-  );
+  // 비교 헬퍼 함수
+  const compareIds = (id1, id2) => {
+    if (!id1 || !id2) return false;
+    return (
+      id1 === id2 || 
+      String(id1) === String(id2) ||
+      Number(id1) === Number(id2)
+    );
+  };
+  
+  // 모든 가능한 경우 확인:
+  // 1. seller.id와 userId 비교
+  // 2. seller.kakaoId와 userId 비교
+  // 3. 원본 sellerId와 userId 비교
+  const isMyProductByBackendId = userId && sellerBackendId && compareIds(sellerBackendId, userId);
+  const isMyProductByKakaoId = userId && sellerKakaoId && compareIds(sellerKakaoId, userId);
+  const isMyProductByRawSellerId = userId && rawSellerId && compareIds(rawSellerId, userId);
+  
+  const isMyProduct = isMyProductByBackendId || isMyProductByKakaoId || isMyProductByRawSellerId;
   
   // 디버깅용 (개발 환경에서만)
   if (process.env.NODE_ENV === "development" && p) {
     console.log("[내 상품 확인]", {
       userId,
-      sellerId,
+      sellerBackendId,
+      sellerKakaoId,
+      rawSellerId,
       userIdType: typeof userId,
-      sellerIdType: typeof sellerId,
+      sellerBackendIdType: typeof sellerBackendId,
+      sellerKakaoIdType: typeof sellerKakaoId,
+      rawSellerIdType: typeof rawSellerId,
+      isMyProductByBackendId,
+      isMyProductByKakaoId,
+      isMyProductByRawSellerId,
       isMyProduct,
       fullSeller: p?.seller,
-      rawProduct: p,
     });
   }
 
