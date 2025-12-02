@@ -341,37 +341,35 @@ export default function ProductDetailPage() {
     }
     
     try {
-      // 백엔드가 내부 사용자 ID를 기대할 수 있으므로 sellerId도 함께 전송
-      // sellerId는 백엔드 내부 ID일 가능성이 높음
-      const sellerBackendId = p.seller?.id || p.sellerId;
-      
-      // 요청 본문 구성
-      const requestBody = {
-        productId: p.id,
-        buyerId: userId, // 카카오 ID 또는 내부 ID (백엔드가 처리)
-      };
+      // 백엔드가 @RequestParam으로 buyerId를 받는 것으로 보임
+      // 쿼리 파라미터로 전송
+      const params = new URLSearchParams();
+      params.append("buyerId", userId);
+      params.append("productId", p.id);
       
       // sellerId가 있으면 함께 전송
+      const sellerBackendId = p.seller?.id || p.sellerId;
       if (sellerBackendId) {
-        requestBody.sellerId = sellerBackendId;
+        params.append("sellerId", sellerBackendId);
       }
+      
+      const url = `${API_BASE}/api/chatrooms?${params.toString()}`;
       
       if (process.env.NODE_ENV === "development") {
-        console.log("[채팅방 생성] 요청:", requestBody);
+        console.log("[채팅방 생성] 요청 URL:", url);
       }
       
-      const res = await fetch(`${API_BASE}/api/chatrooms`, {
+      const res = await fetch(url, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(requestBody),
       });
       
       if (!res.ok) {
         const errorText = await res.text();
         if (process.env.NODE_ENV === "development") {
           console.error("[채팅방 생성 실패] 응답:", res.status, errorText);
-          console.error("[채팅방 생성 실패] 요청 본문:", requestBody);
+          console.error("[채팅방 생성 실패] 요청 URL:", url);
         }
         
         // 400 에러인 경우 더 자세한 메시지 표시
