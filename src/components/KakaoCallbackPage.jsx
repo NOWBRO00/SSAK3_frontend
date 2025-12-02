@@ -111,6 +111,9 @@ export default function KakaoCallbackPage() {
 
         // 백엔드 응답: accessToken, refreshToken (UUID 기반), profile
         // profile 구조: { id, nickname, email, profileImage }
+        // 주의: profile.id는 카카오 ID일 수 있고, 백엔드 사용자 ID일 수도 있음
+        console.log("✅ 카카오 로그인 응답:", data);
+        
         if (data?.accessToken) {
           localStorage.setItem("ssak3.accessToken", data.accessToken);
         }
@@ -119,6 +122,7 @@ export default function KakaoCallbackPage() {
         }
         if (data?.profile) {
           // profile: { id, nickname, email, profileImage }
+          console.log("✅ 저장할 프로필:", data.profile);
           localStorage.setItem("ssak3.profile", JSON.stringify(data.profile));
         }
 
