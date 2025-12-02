@@ -154,8 +154,8 @@ export default function KakaoCallbackPage() {
           // DB PK가 없으면 백엔드에서 가져오기 시도 (토큰 저장 후)
           if (!dbPk && kakaoId && data?.accessToken) {
             try {
-              // 방법 1: /api/users/me로 DB PK 조회 시도
-              let userRes = await fetch(getApiUrl("/api/users/me"), {
+              // 방법 1: /api/users/kakao/{kakaoId}로 시도 (카카오 ID로 사용자 조회)
+              let userRes = await fetch(getApiUrl(`/api/users/kakao/${kakaoId}`), {
                 method: "GET",
                 credentials: "include",
                 headers: {
@@ -169,16 +169,16 @@ export default function KakaoCallbackPage() {
                   // DB PK 찾음
                   dbPk = userData.id;
                   if (process.env.NODE_ENV === "development") {
-                    console.log("[카카오 로그인] /api/users/me에서 DB PK 조회 성공:", dbPk);
+                    console.log("[카카오 로그인] /api/users/kakao/{kakaoId}에서 DB PK 조회 성공:", dbPk);
                   }
                 }
               } else {
-                // 방법 2: /api/users/kakao/{kakaoId}로 시도
+                // 방법 2: /api/users/me로 시도 (현재 로그인한 사용자)
                 if (process.env.NODE_ENV === "development") {
-                  console.log("[카카오 로그인] /api/users/me 실패, /api/users/kakao/{kakaoId} 시도:", userRes.status);
+                  console.log("[카카오 로그인] /api/users/kakao/{kakaoId} 실패, /api/users/me 시도:", userRes.status);
                 }
                 
-                userRes = await fetch(getApiUrl(`/api/users/kakao/${kakaoId}`), {
+                userRes = await fetch(getApiUrl("/api/users/me"), {
                   method: "GET",
                   credentials: "include",
                   headers: {
@@ -192,18 +192,20 @@ export default function KakaoCallbackPage() {
                     // DB PK 찾음
                     dbPk = userData.id;
                     if (process.env.NODE_ENV === "development") {
-                      console.log("[카카오 로그인] /api/users/kakao/{kakaoId}에서 DB PK 조회 성공:", dbPk);
+                      console.log("[카카오 로그인] /api/users/me에서 DB PK 조회 성공:", dbPk);
                     }
                   }
                 } else {
+                  // 모든 방법 실패 - 카카오 ID 사용 (백엔드가 카카오 ID로도 처리 가능)
                   if (process.env.NODE_ENV === "development") {
-                    console.warn("[카카오 로그인] 모든 DB PK 조회 방법 실패:", userRes.status);
+                    console.warn("[카카오 로그인] 모든 DB PK 조회 방법 실패. 카카오 ID 사용:", kakaoId, userRes.status);
                   }
                 }
               }
             } catch (e) {
+              // 네트워크 오류 등 - 카카오 ID 사용 (백엔드가 카카오 ID로도 처리 가능)
               if (process.env.NODE_ENV === "development") {
-                console.warn("[카카오 로그인] DB PK 조회 실패, 카카오 ID 사용:", kakaoId, e);
+                console.warn("[카카오 로그인] DB PK 조회 중 오류 발생, 카카오 ID 사용:", kakaoId, e);
               }
             }
           }
