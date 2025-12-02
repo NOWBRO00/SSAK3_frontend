@@ -107,7 +107,9 @@ export default function ProductPostPage() {
       try {
         setLoading(true);
 
-        const res = await fetch(`${API_BASE}/api/products/${id}`);
+        const res = await fetch(`${API_BASE}/api/products/${id}`, {
+          credentials: "include",
+        });
         if (!res.ok) throw new Error("상품 조회 실패");
         const raw = await res.json();
 
