@@ -173,10 +173,28 @@ export default function KakaoCallbackPage() {
           
           // DB PK가 없으면 백엔드에서 가져오기 시도
           if (!dbPk && kakaoId) {
-            // TODO: 백엔드에서 /api/users/kakao/{kakaoId}로 DB PK 조회
-            // 현재는 일단 카카오 ID를 사용 (백엔드가 카카오 ID로도 처리 가능)
-            if (process.env.NODE_ENV === "development") {
-              console.warn("[카카오 로그인] DB PK를 찾을 수 없음. 카카오 ID 사용:", kakaoId);
+            try {
+              // 백엔드에서 /api/users/me 또는 /api/users/kakao/{kakaoId}로 DB PK 조회 시도
+              // 먼저 /api/users/me 시도 (현재 로그인한 사용자 정보)
+              const userRes = await fetch(getApiUrl("/api/users/me"), {
+                credentials: "include",
+              });
+              
+              if (userRes.ok) {
+                const userData = await userRes.json();
+                if (userData.id && userData.id < 1000000) {
+                  // DB PK 찾음
+                  dbPk = userData.id;
+                  profileToSave.id = dbPk;
+                  if (process.env.NODE_ENV === "development") {
+                    console.log("[카카오 로그인] /api/users/me에서 DB PK 조회 성공:", dbPk);
+                  }
+                }
+              }
+            } catch (e) {
+              if (process.env.NODE_ENV === "development") {
+                console.warn("[카카오 로그인] DB PK 조회 실패, 카카오 ID 사용:", kakaoId, e);
+              }
             }
           }
           
@@ -185,7 +203,7 @@ export default function KakaoCallbackPage() {
           if (process.env.NODE_ENV === "development") {
             console.log("[카카오 로그인] 백엔드 응답:", data);
             console.log("[카카오 로그인] 프로필 저장:", {
-              id: profileToSave.id,        // DB PK
+              id: profileToSave.id,        // DB PK (또는 카카오 ID)
               kakaoId: profileToSave.kakaoId, // 카카오 ID
               nickname: profileToSave.nickname,
               originalProfile: profile,
