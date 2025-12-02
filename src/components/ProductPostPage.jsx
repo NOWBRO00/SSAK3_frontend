@@ -11,14 +11,6 @@ import { BASE_URL } from "../lib/api";
 // ✅ 실제로 사용할 API_BASE
 const API_BASE = BASE_URL;
 
-// 프론트 카테고리 코드 -> 백엔드 categoryId(숫자) 매핑
-const CATEGORY_ID_MAP = {
-  clothes: 1, // 의류
-  books: 2, // 도서 / 문구
-  appliances: 3, // 가전 / 주방
-  helper: 4, // 도우미 / 기타
-};
-
 // 백엔드 categoryName -> 프론트 코드 매핑 (수정 모드에서 사용)
 const CATEGORY_CODE_MAP = {
   "의류": "clothes",
