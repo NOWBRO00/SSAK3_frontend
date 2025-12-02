@@ -23,6 +23,9 @@ import { resolveCategoryFromParam, buildImageUrl } from "../lib/products";
 // 🔹 공통 API 함수
 import { api } from "../lib/api";
 
+// ✅ 공통 인증 유틸리티 사용
+import { getUserId } from "../utils/auth";
+
 /** mock 상태(한글) → enum 변환 */
 const mapStatusFromKorean = (status) => {
   switch (status) {
