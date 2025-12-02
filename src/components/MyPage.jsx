@@ -85,8 +85,9 @@ export default function MyPage() {
   // TODO: 나중에 백엔드 연동
   const temperature = 55.7;
   const sellCount = 12;
-  const nickname = profile?.nickname || "사용자";
-  const profileImage = profile?.profileImageUrl || profile?.thumbnailImageUrl || defaultProfile;
+  const userProfile = getUserProfile();
+  const nickname = userProfile?.nickname || "사용자";
+  const profileImage = userProfile?.profileImageUrl || userProfile?.thumbnailImageUrl || defaultProfile;
 
   // ✅ 1) 내 상품 목록 (백엔드 API에서 가져오기)
   const [myItems, setMyItems] = useState([]);
