@@ -47,6 +47,9 @@ export default function ChatRoomPage() {
   const { id } = useParams();
   const roomId = id || "temp";
   const nav = useNavigate();
+  
+  // roomId 디버깅
+  console.log("[채팅방 페이지] 렌더링:", { id, roomId, pathname: window.location.pathname });
 
   // ✅ 채팅방 메타(상대, 상품) - 백엔드에서 가져오기
   const [roomMeta, setRoomMeta] = useState({
