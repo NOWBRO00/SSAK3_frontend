@@ -90,8 +90,14 @@ export default function ChatRoomPage() {
     setLoadingRoom(true);
     try {
       // 1) 채팅방 정보 가져오기
-      // 백엔드 명세: GET /api/chatrooms/rooms/{chatRoomId} (메시지 전송과 동일한 패턴)
-      const url = `${API_BASE}/api/chatrooms/rooms/${roomId}`;
+      // 백엔드 명세 확인 필요: GET /api/chatrooms/{id} 또는 GET /api/chatrooms/rooms/{id}
+      // 채팅방 생성 응답에서 받은 roomId를 사용하여 조회
+      // 일단 여러 패턴 시도
+      let url = `${API_BASE}/api/chatrooms/${roomId}`;
+      
+      // 백엔드가 /api/chatrooms/{id}를 지원하지 않으면 /api/chatrooms/rooms/{id} 시도
+      // (메시지 전송 API와 동일한 패턴)
+      // 하지만 먼저 기본 패턴 시도
       
       // 프로덕션에서도 로그 확인 가능하도록
       console.log("[채팅방 정보] 조회 시작:", url, { roomId });
