@@ -90,10 +90,14 @@ export default function ChatListPage() {
         unreadCount: raw.unreadCount ?? 0,
       }));
 
-      setChats(mapped);
+      setChats(mapped || []);
     } catch (e) {
       // 백엔드 실패 시 빈 배열로 표시
       setChats([]);
+      // 에러 로그는 개발 환경에서만
+      if (process.env.NODE_ENV === "development") {
+        console.error("[ChatList] 백엔드 실패:", e);
+      }
     } finally {
       setLoading(false);
     }

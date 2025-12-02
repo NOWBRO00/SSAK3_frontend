@@ -91,7 +91,8 @@ export default function ProductDetailPage() {
 
   // ====== 상품 상세 조회 (백엔드 + mock fallback) ======
   const load = useCallback(async () => {
-    if (!id || id === "undefined") {
+    // id가 없거나 undefined 문자열이면 조기 반환
+    if (!id || id === "undefined" || id === "null" || isNaN(Number(id))) {
       setLoading(false);
       setP(null);
       return;

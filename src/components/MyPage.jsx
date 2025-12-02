@@ -100,8 +100,8 @@ export default function MyPage() {
         const rawList = await res.json(); // 예시: [{ productId, title, price, imageUrl }]
         const mapped = rawList.map((w) => ({
           id: w.productId,
-          title: w.title,
-          price: w.price,
+          title: w.title || "",
+          price: w.price != null ? Number(w.price) : 0, // 안전하게 처리
           img: buildImageUrl(w.imageUrl),
           category: w.categoryName || "", // 나중에 백엔드가 붙여주면 사용
           status: "ON_SALE", // 👍 likes 응답엔 상태가 없어서 기본값
