@@ -120,7 +120,9 @@ export default function MyPage() {
         if (!userId) {
           throw new Error("사용자 ID를 찾을 수 없습니다.");
         }
-        const res = await fetch(`${API_BASE}/api/likes/user/${userId}`);
+        const res = await fetch(`${API_BASE}/api/likes/user/${userId}`, {
+          credentials: "include",
+        });
         if (!res.ok) throw new Error("찜 목록 조회 실패");
 
         const rawList = await res.json();
