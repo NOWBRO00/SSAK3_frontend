@@ -100,9 +100,10 @@ export default function ProductDetailPage() {
         : [];
 
       // 백엔드 응답에서 seller 정보 확인
-      // sellerId는 백엔드 내부 사용자 ID일 수 있고, seller 객체에 카카오 ID가 있을 수도 있음
-      const sellerKakaoId = raw.seller?.kakaoId || raw.seller?.id || raw.sellerKakaoId;
-      const sellerBackendId = raw.sellerId;
+      // 마이페이지에서 카카오 ID로 조회하므로, raw.sellerId가 카카오 ID일 가능성이 높음
+      // 하지만 백엔드가 내부 사용자 ID를 사용할 수도 있으므로 두 가지 모두 확인
+      const sellerId = raw.sellerId; // 백엔드 응답의 sellerId
+      const sellerKakaoId = raw.seller?.kakaoId || raw.sellerKakaoId; // 카카오 ID (있는 경우)
       
       const mapped = {
         id: raw.id,
@@ -113,7 +114,7 @@ export default function ProductDetailPage() {
         category: { name: raw.categoryName || "기타" },
         images,
         seller: {
-          id: sellerBackendId, // 백엔드 내부 사용자 ID
+          id: sellerId, // sellerId (카카오 ID일 수도 있고 백엔드 사용자 ID일 수도 있음)
           kakaoId: sellerKakaoId, // 카카오 ID (있는 경우)
           nickname: raw.sellerNickname || "익명",
           profile_image_url:
@@ -132,7 +133,7 @@ export default function ProductDetailPage() {
       if (process.env.NODE_ENV === "development") {
         console.log("[상품 상세 응답]", {
           raw,
-          sellerBackendId,
+          sellerId,
           sellerKakaoId,
           rawSeller: raw.seller,
         });
@@ -385,40 +386,29 @@ export default function ProductDetailPage() {
     mannerTemp < 36 ? "low" : mannerTemp < 60 ? "mid" : "high";
 
   // ====== 내 상품인지 확인 ======
-  // 마이페이지에서는 카카오 ID로 조회하므로, sellerId가 카카오 ID일 수도 있고 백엔드 사용자 ID일 수도 있음
-  // 두 가지 경우 모두 확인
+  // 마이페이지에서 /api/products/seller/${카카오ID}로 조회하므로, 
+  // 백엔드가 카카오 ID를 그대로 사용하는 것으로 보임
+  // 따라서 raw.sellerId가 카카오 ID일 가능성이 높음
   const userId = getUserId(); // 카카오 ID
-  const sellerBackendId = p?.seller?.id; // 백엔드 내부 사용자 ID
-  const sellerKakaoId = p?.seller?.kakaoId; // 카카오 ID (있는 경우)
+  const sellerId = p?.seller?.id; // 백엔드 응답의 sellerId (카카오 ID일 가능성 높음)
   
-  // 카카오 ID로 비교 (우선)
-  const isMyProductByKakaoId = userId && sellerKakaoId && (
-    sellerKakaoId === userId || 
-    String(sellerKakaoId) === String(userId) ||
-    Number(sellerKakaoId) === Number(userId)
+  // 숫자/문자열 모두 비교 가능하도록 안전하게 비교
+  const isMyProduct = userId && sellerId && (
+    sellerId === userId || 
+    String(sellerId) === String(userId) ||
+    Number(sellerId) === Number(userId)
   );
-  
-  // 백엔드 사용자 ID로 비교 (백엔드가 카카오 ID를 내부 ID로 변환한 경우)
-  // 마이페이지에서 카카오 ID로 조회가 성공한다면, 백엔드가 카카오 ID를 받아서 처리하므로
-  // 상세페이지의 sellerId도 카카오 ID일 가능성이 높음
-  const isMyProductByBackendId = userId && sellerBackendId && (
-    sellerBackendId === userId || 
-    String(sellerBackendId) === String(userId) ||
-    Number(sellerBackendId) === Number(userId)
-  );
-  
-  const isMyProduct = isMyProductByKakaoId || isMyProductByBackendId;
   
   // 디버깅용 (개발 환경에서만)
   if (process.env.NODE_ENV === "development" && p) {
     console.log("[내 상품 확인]", {
       userId,
-      sellerBackendId,
-      sellerKakaoId,
-      isMyProductByKakaoId,
-      isMyProductByBackendId,
+      sellerId,
+      userIdType: typeof userId,
+      sellerIdType: typeof sellerId,
       isMyProduct,
       fullSeller: p?.seller,
+      rawProduct: p,
     });
   }
 

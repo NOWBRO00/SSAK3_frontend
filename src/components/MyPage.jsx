@@ -58,9 +58,45 @@ export default function MyPage() {
   const nickname = userProfile?.nickname || "사용자";
   const profileImage = userProfile?.profileImageUrl || userProfile?.thumbnailImageUrl || defaultProfile;
 
-  // TODO: 나중에 백엔드 연동
-  const temperature = 55.7;
-  const sellCount = 12;
+  // ✅ 사용자 프로필 및 온도 정보 (백엔드 API에서 가져오기)
+  const [temperature, setTemperature] = useState(36.5); // 기본값
+  const [sellCount, setSellCount] = useState(0);
+
+  // 사용자 정보 로드
+  useEffect(() => {
+    const loadUserInfo = async () => {
+      try {
+        const userId = getUserId();
+        if (!userId) return;
+        
+        // GET /api/users/{id} - 사용자 정보 조회
+        const res = await fetch(`${API_BASE}/api/users/${userId}`, {
+          credentials: "include",
+        });
+        
+        if (res.ok) {
+          const userData = await res.json();
+          if (userData.temperature !== undefined) {
+            setTemperature(userData.temperature);
+          }
+          // 판매 수는 내 상품 목록 길이로 계산
+          // 또는 백엔드에서 제공하는 필드가 있다면 사용
+        }
+      } catch (e) {
+        // 백엔드 실패 시 기본값 유지
+        if (process.env.NODE_ENV === "development") {
+          console.error("[사용자 정보 조회 실패]:", e);
+        }
+      }
+    };
+    
+    loadUserInfo();
+  }, []);
+
+  // 판매 수는 내 상품 목록 길이로 계산
+  useEffect(() => {
+    setSellCount(myItems.length);
+  }, [myItems]);
 
   // ✅ 1) 내 상품 목록 (백엔드 API에서 가져오기)
   const [myItems, setMyItems] = useState([]);
