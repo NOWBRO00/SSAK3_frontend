@@ -27,6 +27,9 @@ import { api } from "../lib/api";
 // ✅ 공통 인증 유틸리티 사용
 import { getUserId } from "../utils/auth";
 
+// ✅ 이미지 URL 빌드 함수
+import { buildImageUrl } from "../lib/products";
+
 export default function SearchPage() {
   const navigate = useNavigate();
 
@@ -80,14 +83,17 @@ export default function SearchPage() {
           seller: raw.sellerNickname || "닉네임",
           liked: !!raw.isWishlisted,
           likes: raw.likeCount ?? 0,
-          thumbnail: Array.isArray(raw.imageUrls)
-            ? raw.imageUrls[0]
+          thumbnail: Array.isArray(raw.imageUrls) && raw.imageUrls[0]
+            ? buildImageUrl(raw.imageUrls[0])
             : "",
         }));
 
         setProducts(mapped);
       } catch (err) {
         // 백엔드 실패 시 빈 배열로 표시
+        if (process.env.NODE_ENV === "development") {
+          console.error("[검색 실패]:", err);
+        }
         setProducts([]);
       }
     },
