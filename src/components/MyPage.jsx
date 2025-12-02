@@ -62,6 +62,9 @@ export default function MyPage() {
   const [temperature, setTemperature] = useState(36.5); // 기본값
   const [sellCount, setSellCount] = useState(0);
 
+  // ✅ 1) 내 상품 목록 (백엔드 API에서 가져오기)
+  const [myItems, setMyItems] = useState([]);
+
   // 사용자 정보 로드
   useEffect(() => {
     const loadUserInfo = async () => {
@@ -97,9 +100,6 @@ export default function MyPage() {
   useEffect(() => {
     setSellCount(myItems.length);
   }, [myItems]);
-
-  // ✅ 1) 내 상품 목록 (백엔드 API에서 가져오기)
-  const [myItems, setMyItems] = useState([]);
 
   // ✅ 2) 찜 목록: 명세서 기준 /api/likes/user/{userId}
   const [wishItems, setWishItems] = useState([]);
