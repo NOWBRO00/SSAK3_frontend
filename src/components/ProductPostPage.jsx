@@ -60,7 +60,9 @@ export default function ProductPostPage() {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/categories`);
+        const res = await fetch(`${API_BASE}/api/categories`, {
+          credentials: "include",
+        });
         if (!res.ok) {
           console.warn("카테고리 목록 가져오기 실패, 기본값 사용");
           return;
@@ -227,6 +229,7 @@ export default function ProductPostPage() {
           headers: {
             "Content-Type": "application/json",
           },
+          credentials: "include",
           body: JSON.stringify(payload),
         });
 
@@ -294,6 +297,7 @@ export default function ProductPostPage() {
 
         const res = await fetch(`${API_BASE}/api/products/with-upload`, {
           method: "POST",
+          credentials: "include",
           body: formData, // FormData는 Content-Type 자동 설정
         });
 

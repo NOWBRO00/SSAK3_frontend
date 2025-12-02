@@ -9,6 +9,7 @@ export const BASE_URL = API_BASE_URL;
 export async function api(path, options = {}) {
   const response = await fetch(BASE_URL + path, {
     ...options,
+    credentials: "include", // 쿠키 포함
     headers: {
       "Content-Type": "application/json",
       ...options.headers,
