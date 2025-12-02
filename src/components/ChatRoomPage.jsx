@@ -44,7 +44,7 @@ function formatDateDivider(dateLike) {
 }
 
 export default function ChatRoomPage() {
-  const { id } = useParams();
+  const { roomId: id } = useParams(); // App.js에서 /chat/:roomId로 정의되어 있음
   const roomId = id || "temp";
   const nav = useNavigate();
   
