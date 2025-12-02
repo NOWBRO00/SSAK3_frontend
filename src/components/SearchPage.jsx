@@ -69,12 +69,40 @@ export default function SearchPage() {
       });
 
       try {
-        // GET /api/products/search?keyword={검색어}
-        const list = await api(
-          `/api/products/search?keyword=${encodeURIComponent(q)}`
-        );
+        // 방법 1: GET /api/products/search?keyword={검색어} 시도
+        let list = [];
+        try {
+          list = await api(
+            `/api/products/search?keyword=${encodeURIComponent(q)}`
+          );
+        } catch (searchErr) {
+          // 검색 전용 API가 없으면 전체 상품 목록에서 필터링
+          if (process.env.NODE_ENV === "development") {
+            console.log("[검색] /api/products/search 실패, 전체 목록에서 필터링 시도");
+          }
+          
+          // 방법 2: GET /api/products?keyword={검색어} 시도
+          try {
+            list = await api(`/api/products?keyword=${encodeURIComponent(q)}`);
+          } catch (queryErr) {
+            // 방법 3: GET /api/products (전체 목록) 가져와서 프론트에서 필터링
+            const allProducts = await api("/api/products");
+            const lowerQ = q.toLowerCase();
+            list = Array.isArray(allProducts) 
+              ? allProducts.filter((p) => 
+                  (p.title || "").toLowerCase().includes(lowerQ) ||
+                  (p.description || "").toLowerCase().includes(lowerQ) ||
+                  (p.categoryName || "").toLowerCase().includes(lowerQ)
+                )
+              : [];
+            
+            if (process.env.NODE_ENV === "development") {
+              console.log("[검색] 전체 목록에서 필터링:", list.length, "개");
+            }
+          }
+        }
 
-        const mapped = list.map((raw) => ({
+        const mapped = (Array.isArray(list) ? list : []).map((raw) => ({
           id: raw.id,
           title: raw.title,
           price: raw.price,
@@ -90,7 +118,7 @@ export default function SearchPage() {
 
         setProducts(mapped);
       } catch (err) {
-        // 백엔드 실패 시 빈 배열로 표시
+        // 모든 방법 실패 시 빈 배열로 표시
         if (process.env.NODE_ENV === "development") {
           console.error("[검색 실패]:", err);
         }
