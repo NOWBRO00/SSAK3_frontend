@@ -369,9 +369,27 @@ export default function ProductDetailPage() {
     mannerTemp < 36 ? "low" : mannerTemp < 60 ? "mid" : "high";
 
   // ====== 내 상품인지 확인 ======
-  const userId = getUserId();
-  const sellerId = p?.seller?.id;
-  const isMyProduct = userId && sellerId && (sellerId === userId || String(sellerId) === String(userId));
+  // sellerId는 백엔드에서 raw.sellerId로 오는데, 이것이 카카오 ID인지 백엔드 사용자 ID인지 확인 필요
+  // 현재는 카카오 ID로 가정하고 비교
+  const userId = getUserId(); // 카카오 ID
+  const sellerId = p?.seller?.id; // 백엔드 응답의 sellerId
+  // 숫자/문자열 모두 비교 가능하도록 안전하게 비교
+  const isMyProduct = userId && sellerId && (
+    sellerId === userId || 
+    String(sellerId) === String(userId) ||
+    Number(sellerId) === Number(userId)
+  );
+  
+  // 디버깅용 (개발 환경에서만)
+  if (process.env.NODE_ENV === "development" && p) {
+    console.log("[내 상품 확인]", {
+      userId,
+      sellerId,
+      userIdType: typeof userId,
+      sellerIdType: typeof sellerId,
+      isMyProduct,
+    });
+  }
 
   // ====== 상태 변경 ======
   const [statusChanging, setStatusChanging] = useState(false);
