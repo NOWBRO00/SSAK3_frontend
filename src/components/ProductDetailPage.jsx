@@ -51,20 +51,6 @@ const DEFAULT_AVATAR_DATA =
 
 const DEFAULT_MANNER_TEMP = 35;
 
-// 🔹 mock(status: "판매중" | "예약중" | "판매완료") → 내부 enum
-const mapStatusFromKorean = (status) => {
-  switch (status) {
-    case "판매중":
-      return "ON_SALE";
-    case "예약중":
-      return "RESERVED";
-    case "판매완료":
-      return "SOLD_OUT";
-    default:
-      return "ON_SALE";
-  }
-};
-
 export default function ProductDetailPage() {
   const { id } = useParams();
   const nav = useNavigate();
@@ -86,16 +72,6 @@ export default function ProductDetailPage() {
   const draggingRef = useRef(false);
 
   const main = useMemo(() => p?.images?.[idx] ?? "", [p, idx]);
-  
-  // 자기 상품인지 확인
-  const isMyProduct = useMemo(() => {
-    if (!p) return false;
-    const userId = getUserId();
-    if (!userId) return false;
-    const sellerId = p.seller?.id;
-    // seller.id는 백엔드 사용자 ID일 수도 있고, 카카오 ID일 수도 있음
-    return sellerId && (sellerId === userId || String(sellerId) === String(userId));
-  }, [p]);
 
   // ====== 상품 상세 조회 (백엔드 + mock fallback) ======
   const load = useCallback(async () => {

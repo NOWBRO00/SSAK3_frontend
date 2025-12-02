@@ -102,7 +102,7 @@ export default function CategoryPage() {
     } finally {
       setLoading(false);
     }
-  }, [categoryId, categoryName]);
+  }, [categoryId]);
 
   useEffect(() => {
     load();

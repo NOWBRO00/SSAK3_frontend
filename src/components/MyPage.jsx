@@ -31,20 +31,6 @@ import { getUserId, getUserProfile } from "../utils/auth";
 
 const API_BASE = BASE_URL;
 
-/** 한글 상태 → 내부 enum */
-const mapStatusFromKorean = (status) => {
-  switch (status) {
-    case "판매중":
-      return "ON_SALE";
-    case "예약중":
-      return "RESERVED";
-    case "판매완료":
-      return "SOLD_OUT";
-    default:
-      return "ON_SALE";
-  }
-};
-
 /** 내부 enum → 한글 상태 (UI 표시용) */
 const mapStatusToKorean = (code) => {
   switch (code) {
@@ -68,14 +54,13 @@ export default function MyPage() {
   const [filterStatus, setFilterStatus] = useState("ON_SALE");
 
   // ✅ 카카오 로그인 사용자 정보 가져오기
-  const profile = getUserProfile();
+  const userProfile = getUserProfile();
+  const nickname = userProfile?.nickname || "사용자";
+  const profileImage = userProfile?.profileImageUrl || userProfile?.thumbnailImageUrl || defaultProfile;
 
   // TODO: 나중에 백엔드 연동
   const temperature = 55.7;
   const sellCount = 12;
-  const userProfile = getUserProfile();
-  const nickname = userProfile?.nickname || "사용자";
-  const profileImage = userProfile?.profileImageUrl || userProfile?.thumbnailImageUrl || defaultProfile;
 
   // ✅ 1) 내 상품 목록 (백엔드 API에서 가져오기)
   const [myItems, setMyItems] = useState([]);
