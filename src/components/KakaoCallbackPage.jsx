@@ -138,11 +138,6 @@ export default function KakaoCallbackPage() {
           // 백엔드가 명시적으로 kakaoId를 제공하는지 확인
           const hasKakaoId = profile.kakaoId !== undefined && profile.kakaoId !== null;
           
-          // 백엔드가 DB PK를 id로 보내는 경우:
-          // - profile.id가 작은 숫자(예: 1, 2, 3...)이고 profile.kakaoId가 큰 숫자(예: 4474375438)인 경우
-          // - 또는 profile.kakaoId가 명시적으로 있는 경우
-          const isDbPk = hasKakaoId || (profile.id && profile.id < 1000000); // DB PK는 보통 작은 숫자
-          
           // DB PK와 카카오 ID 분리
           let dbPk = null;
           let kakaoId = null;
