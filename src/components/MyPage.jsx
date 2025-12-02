@@ -26,12 +26,10 @@ import stickerSoldout from "../image/status-soldout.png";
 // 🔹 API BASE + 이미지 URL 유틸 (카테고리/상품에서 쓰는 것과 동일하게)
 import { BASE_URL } from "../lib/api";
 import { buildImageUrl } from "../lib/products";
-
-const API_BASE = BASE_URL;
-
-// ✅ 사용자 ID 가져오기 (카카오 로그인)
 // ✅ 공통 인증 유틸리티 사용
 import { getUserId, getUserProfile } from "../utils/auth";
+
+const API_BASE = BASE_URL;
 
 /** 한글 상태 → 내부 enum */
 const mapStatusFromKorean = (status) => {

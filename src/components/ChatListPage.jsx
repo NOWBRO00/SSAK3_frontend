@@ -9,12 +9,10 @@ import BottomNav from "./BottomNav";
 
 // 🔹 공통 API BASE
 import { BASE_URL } from "../lib/api";
-
-const API_BASE = BASE_URL;
-
-// ✅ 사용자 ID 가져오기 (카카오 로그인)
 // ✅ 공통 인증 유틸리티 사용
 import { getUserId } from "../utils/auth";
+
+const API_BASE = BASE_URL;
 
 // 🔹 fallback용 임시 채팅
 function formatKoreanDate(iso) {

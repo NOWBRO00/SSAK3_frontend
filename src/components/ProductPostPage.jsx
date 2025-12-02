@@ -7,6 +7,8 @@ import BottomNav from "./BottomNav";
 
 // ✅ api.js에서 BASE_URL 가져오기
 import { BASE_URL } from "../lib/api";
+// ✅ 공통 인증 유틸리티 사용
+import { getUserId as getSellerId } from "../utils/auth";
 
 // ✅ 실제로 사용할 API_BASE
 const API_BASE = BASE_URL;
@@ -34,9 +36,6 @@ const CATEGORY_NAME_MAP = {
   "appliances": "전자제품",  // 백엔드 실제 이름: "전자제품"
   "helper": "가구",  // 백엔드 실제 이름: "가구"
 };
-
-// ✅ 공통 인증 유틸리티 사용
-import { getUserId as getSellerId } from "../utils/auth";
 
 export default function ProductPostPage() {
   const { id } = useParams(); // /product/:id/edit 인 경우 id 존재

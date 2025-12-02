@@ -25,7 +25,8 @@ import searchIcon from "../image/icon-search.png";
 
 // 🔌 공통 API BASE
 import { BASE_URL } from "../lib/api";
-
+// ✅ 공통 인증 유틸리티 사용
+import { getUserId } from "../utils/auth";
 
 // Mock 데이터 제거됨
 
@@ -34,9 +35,6 @@ import loaderImg from "../image/loader.png";
 
 // ====== 백엔드 연동용 기본 설정 ======
 const API_BASE = BASE_URL;
-
-// ✅ 공통 인증 유틸리티 사용
-import { getUserId } from "../utils/auth";
 
 
 const KRW = (n) =>
