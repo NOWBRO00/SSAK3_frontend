@@ -251,6 +251,12 @@ export default function ChatRoomPage() {
     const content = text.trim();
     if (!content) return;
 
+    // roomId가 유효하지 않으면 메시지 전송 불가
+    if (!roomId || roomId === "temp" || isNaN(Number(roomId))) {
+      alert("채팅방 정보를 불러오는 중입니다. 잠시 후 다시 시도해주세요.");
+      return;
+    }
+
     const tempId = "tmp_" + Date.now();
     const optimistic = {
       id: tempId,
@@ -273,10 +279,11 @@ export default function ChatRoomPage() {
 
       // 백엔드 명세: POST /api/chatrooms/rooms/{chatRoomId}/messages?senderId={senderId}
       // RequestBody: { "content": "..." }
+      // roomId는 숫자여야 함 (Long 타입)
       const url = `${API_BASE}/api/chatrooms/rooms/${roomId}/messages?senderId=${userId}`;
       
       if (process.env.NODE_ENV === "development") {
-        console.log("[메시지 전송] 요청:", url, { content });
+        console.log("[메시지 전송] 요청:", url, { content, roomId, userId });
       }
 
       const res = await fetch(url, {
