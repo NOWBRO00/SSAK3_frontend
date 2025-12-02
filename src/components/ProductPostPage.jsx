@@ -296,10 +296,15 @@ export default function ProductPostPage() {
         });
 
         // FormData 전송
-
+        // ⚠ Render + QUIC(HTTP/3) 환경에서 net::ERR_QUIC_PROTOCOL_ERROR 회피
+        //  - cache: "no-store" + Connection: "keep-alive"로 HTTP/1.1 강제
         const res = await fetch(`${API_BASE}/api/products/with-upload`, {
           method: "POST",
           credentials: "include",
+          cache: "no-store",
+          headers: {
+            Connection: "keep-alive",
+          },
           body: formData, // FormData는 Content-Type 자동 설정
         });
 
