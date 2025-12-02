@@ -88,6 +88,16 @@ export default function ProductDetailPage() {
   const draggingRef = useRef(false);
 
   const main = useMemo(() => p?.images?.[idx] ?? "", [p, idx]);
+  
+  // 자기 상품인지 확인
+  const isMyProduct = useMemo(() => {
+    if (!p) return false;
+    const userId = getUserId();
+    if (!userId) return false;
+    const sellerId = p.seller?.id;
+    // seller.id는 백엔드 사용자 ID일 수도 있고, 카카오 ID일 수도 있음
+    return sellerId && (sellerId === userId || String(sellerId) === String(userId));
+  }, [p]);
 
   // ====== 상품 상세 조회 (백엔드 + mock fallback) ======
   const load = useCallback(async () => {
@@ -263,14 +273,39 @@ export default function ProductDetailPage() {
       // API 명세서: POST/DELETE /api/likes?userId={userId}&productId={productId}
       const url = `${API_BASE}/api/likes?userId=${userId}&productId=${p.id}`;
       
+      if (process.env.NODE_ENV === "development") {
+        console.log(`[찜 ${next ? "추가" : "취소"}] 요청:`, url);
+      }
+      
       const res = await fetch(url, {
         method: next ? "POST" : "DELETE",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
       });
-      if (!res.ok) throw new Error("찜 실패");
+      
+      if (process.env.NODE_ENV === "development") {
+        console.log(`[찜 ${next ? "추가" : "취소"}] 응답:`, res.status, res.statusText);
+      }
+      
+      if (!res.ok) {
+        const errorText = await res.text();
+        if (process.env.NODE_ENV === "development") {
+          console.error("[찜 실패] 응답 본문:", errorText);
+        }
+        throw new Error("찜 실패");
+      }
+      
+      // 성공 시 응답 데이터 확인 (선택적)
+      if (res.status !== 204) {
+        const data = await res.json();
+        if (process.env.NODE_ENV === "development") {
+          console.log("[찜 성공] 응답 데이터:", data);
+        }
+      }
     } catch (e) {
-      console.error(e);
+      if (process.env.NODE_ENV === "development") {
+        console.error("[찜 오류]:", e);
+      }
       // 롤백
       setIsWish((v) => !v);
       setWishCount((c) => Math.max(0, c + (next ? -1 : 1)));
@@ -283,11 +318,24 @@ export default function ProductDetailPage() {
   // ====== 1:1 문의 (채팅방 생성) - /api/chatrooms ======
   const startChat = useCallback(async () => {
     if (!p) return;
+    
+    // 자기 상품인지 확인
+    const userId = getUserId();
+    if (!userId) {
+      alert("로그인이 필요합니다.");
+      nav("/login");
+      return;
+    }
+    
+    // 판매자 ID와 현재 사용자 ID 비교
+    // seller.id는 백엔드 사용자 ID일 수도 있고, 카카오 ID일 수도 있음
+    const sellerId = p.seller?.id;
+    if (sellerId && (sellerId === userId || String(sellerId) === String(userId))) {
+      alert("자신의 상품에는 문의할 수 없습니다.");
+      return;
+    }
+    
     try {
-      const userId = getUserId();
-      if (!userId) {
-        throw new Error("사용자 ID를 찾을 수 없습니다.");
-      }
       const res = await fetch(`${API_BASE}/api/chatrooms`, {
         method: "POST",
         credentials: "include",
@@ -297,13 +345,26 @@ export default function ProductDetailPage() {
           buyerId: userId,
         }),
       });
-      if (!res.ok) throw new Error("chat fail");
+      
+      if (!res.ok) {
+        const errorText = await res.text();
+        if (process.env.NODE_ENV === "development") {
+          console.error("[채팅방 생성 실패] 응답:", res.status, errorText);
+        }
+        throw new Error("chat fail");
+      }
+      
       const data = await res.json();
       const roomId = data.roomId ?? data.id;
-      if (roomId) nav(`/chat/${roomId}`);
-      else nav("/chat");
+      if (roomId) {
+        nav(`/chat/${roomId}`);
+      } else {
+        nav("/chat");
+      }
     } catch (e) {
-      console.error(e);
+      if (process.env.NODE_ENV === "development") {
+        console.error("[채팅방 생성 오류]:", e);
+      }
       alert("채팅방 생성에 실패했어요. 잠시 후 다시 시도해 주세요.");
     }
   }, [p, nav]);

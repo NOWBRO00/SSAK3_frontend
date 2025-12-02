@@ -64,7 +64,15 @@ export default function MainPage() {
 
     try {
       // GET /api/products  → 전체 상품 목록
+      if (process.env.NODE_ENV === "development") {
+        console.log("[메인] 추천 상품 조회 시작: GET /api/products");
+      }
+      
       const rawList = await api("/api/products");
+      
+      if (process.env.NODE_ENV === "development") {
+        console.log("[메인] 추천 상품 조회 성공:", rawList?.length || 0, "개");
+      }
 
       // 필요하면 앞에서 몇 개만 사용
       const slice = Array.isArray(rawList) ? rawList.slice(0, 10) : [];
@@ -83,6 +91,9 @@ export default function MainPage() {
 
       setRecommended(mapped);
     } catch (e) {
+      if (process.env.NODE_ENV === "development") {
+        console.error("[메인] 추천 상품 조회 실패:", e);
+      }
       // 백엔드 실패 시 빈 배열로 표시
       setRecommended([]);
     } finally {
@@ -101,7 +112,16 @@ export default function MainPage() {
       if (!userId) {
         throw new Error("사용자 ID를 찾을 수 없습니다.");
       }
+      
+      if (process.env.NODE_ENV === "development") {
+        console.log("[메인] 찜 목록 조회 시작: GET /api/likes/user/" + userId);
+      }
+      
       const likes = await api(`/api/likes/user/${userId}`);
+      
+      if (process.env.NODE_ENV === "development") {
+        console.log("[메인] 찜 목록 조회 성공:", likes?.length || 0, "개");
+      }
 
       const mapped = (likes || []).map((raw) => ({
         id: raw.productId,
@@ -117,6 +137,9 @@ export default function MainPage() {
 
       setLikedList(mapped);
     } catch (e) {
+      if (process.env.NODE_ENV === "development") {
+        console.error("[메인] 찜 목록 조회 실패:", e);
+      }
       // 백엔드 실패 시 빈 배열로 표시
       setLikedList([]);
     } finally {
