@@ -154,8 +154,8 @@ export default function KakaoCallbackPage() {
           // DB PK가 없으면 백엔드에서 가져오기 시도 (토큰 저장 후)
           if (!dbPk && kakaoId && data?.accessToken) {
             try {
-              // 백엔드에서 /api/users/me로 DB PK 조회 시도
-              const userRes = await fetch(getApiUrl("/api/users/me"), {
+              // 방법 1: /api/users/me로 DB PK 조회 시도
+              let userRes = await fetch(getApiUrl("/api/users/me"), {
                 method: "GET",
                 credentials: "include",
                 headers: {
@@ -173,8 +173,32 @@ export default function KakaoCallbackPage() {
                   }
                 }
               } else {
+                // 방법 2: /api/users/kakao/{kakaoId}로 시도
                 if (process.env.NODE_ENV === "development") {
-                  console.warn("[카카오 로그인] /api/users/me 실패:", userRes.status);
+                  console.log("[카카오 로그인] /api/users/me 실패, /api/users/kakao/{kakaoId} 시도:", userRes.status);
+                }
+                
+                userRes = await fetch(getApiUrl(`/api/users/kakao/${kakaoId}`), {
+                  method: "GET",
+                  credentials: "include",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                });
+                
+                if (userRes.ok) {
+                  const userData = await userRes.json();
+                  if (userData.id && userData.id < 1000000) {
+                    // DB PK 찾음
+                    dbPk = userData.id;
+                    if (process.env.NODE_ENV === "development") {
+                      console.log("[카카오 로그인] /api/users/kakao/{kakaoId}에서 DB PK 조회 성공:", dbPk);
+                    }
+                  }
+                } else {
+                  if (process.env.NODE_ENV === "development") {
+                    console.warn("[카카오 로그인] 모든 DB PK 조회 방법 실패:", userRes.status);
+                  }
                 }
               }
             } catch (e) {
