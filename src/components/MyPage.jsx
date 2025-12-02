@@ -21,7 +21,7 @@ import stickerReserved from "../image/status-reserved.png";
 import stickerSoldout from "../image/status-soldout.png";
 
 // 🔹 공통 더미 상품
-import { MOCK_PRODUCTS } from "../data/mockProducts";
+// Mock 데이터 제거됨
 
 // 🔹 API BASE + 이미지 URL 유틸 (카테고리/상품에서 쓰는 것과 동일하게)
 import { BASE_URL } from "../lib/api";
@@ -98,18 +98,8 @@ export default function MyPage() {
   const nickname = profile?.nickname || "사용자";
   const profileImage = profile?.profileImageUrl || profile?.thumbnailImageUrl || defaultProfile;
 
-  // ✅ 1) 내 상품 목록 (지금은 아직 별도 API가 없어서 mock 기반)
-  const [myItems, setMyItems] = useState(() =>
-    MOCK_PRODUCTS.filter((p) => p.tags?.includes("mypage")).map((p) => ({
-      id: p.id,
-      category: p.category, // "의류" / "가전 / 주방" 등 한글 카테고리
-      title: p.title,
-      price: p.price,
-      status: mapStatusFromKorean(p.status), // 내부 enum으로 변환
-      wished: !!p.isWishlisted,
-      img: p.thumbnail || p.images?.[0],
-    }))
-  );
+  // ✅ 1) 내 상품 목록 (백엔드 API에서 가져오기)
+  const [myItems, setMyItems] = useState([]);
 
   // ✅ 2) 찜 목록: 명세서 기준 /api/likes/user/{userId}
   const [wishItems, setWishItems] = useState([]);
@@ -139,20 +129,8 @@ export default function MyPage() {
 
         setWishItems(mapped);
       } catch (e) {
-        console.warn("[찜 목록] 백엔드 실패 → mock fallback", e);
-        // 백엔드 실패 시: mock에서 isWishlisted=true 인 것만 사용
-        const fallback = MOCK_PRODUCTS.filter((p) => p.isWishlisted).map(
-          (p) => ({
-            id: p.id,
-            category: p.category,
-            title: p.title,
-            price: p.price,
-            status: mapStatusFromKorean(p.status),
-            wished: true,
-            img: p.thumbnail || p.images?.[0],
-          })
-        );
-        setWishItems(fallback);
+        // 백엔드 실패 시 빈 배열로 표시
+        setWishItems([]);
       } finally {
         setLoadingWish(false);
       }

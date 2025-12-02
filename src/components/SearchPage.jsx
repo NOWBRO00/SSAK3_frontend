@@ -19,8 +19,7 @@ import BottomNav from "./BottomNav";
 import stickerReserved from "../image/status-reserved.png";
 import stickerSoldout from "../image/status-soldout.png";
 
-// mock
-import { MOCK_PRODUCTS } from "../data/mockProducts";
+// Mock 데이터 제거됨
 
 // 공통 api
 import { api } from "../lib/api";
@@ -43,9 +42,7 @@ export default function SearchPage() {
   const [sortType, setSortType] = useState("인기순");
 
   // 실제 검색 결과
-  const [products, setProducts] = useState(() =>
-    MOCK_PRODUCTS.filter((p) => p.tags?.includes("search"))
-  );
+  const [products, setProducts] = useState([]);
 
   const handleInputChange = (e) => setSearchTerm(e.target.value);
 
@@ -86,11 +83,8 @@ export default function SearchPage() {
 
         setProducts(mapped);
       } catch (err) {
-        console.warn("[검색] 백엔드 실패 → mock 사용", err);
-        const fallback = MOCK_PRODUCTS.filter((p) =>
-          p.title.toLowerCase().includes(q.toLowerCase())
-        );
-        setProducts(fallback);
+        // 백엔드 실패 시 빈 배열로 표시
+        setProducts([]);
       }
     },
     [] // setState 들은 안정적이어서 deps에 안 넣어도 ESLint 통과

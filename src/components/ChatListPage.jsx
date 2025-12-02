@@ -27,16 +27,6 @@ const getUserId = () => {
 };
 
 // 🔹 fallback용 임시 채팅
-const mockChats = [
-  {
-    id: "c1",
-    peer: { nickname: "닉네임123" },
-    lastMessage: "아직 판매 하고 계신가요?",
-    lastMessageAt: "2025-11-03T07:00:00Z",
-    unreadCount: 4,
-  },
-];
-
 function formatKoreanDate(iso) {
   if (!iso) return "";
   const d = new Date(iso);
@@ -63,7 +53,7 @@ export default function ChatListPage() {
   const nav = useNavigate();
   const { setUnreadTotal } = useUnread();
 
-  const [chats, setChats] = useState(mockChats);
+  const [chats, setChats] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // ✅ 채팅 목록 로드 (백엔드 + mock fallback)
@@ -112,8 +102,8 @@ export default function ChatListPage() {
 
       setChats(mapped);
     } catch (e) {
-      console.warn("[ChatList] 백엔드 실패 → mock 사용", e);
-      setChats(mockChats);
+      // 백엔드 실패 시 빈 배열로 표시
+      setChats([]);
     } finally {
       setLoading(false);
     }

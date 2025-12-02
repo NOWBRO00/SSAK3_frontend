@@ -53,7 +53,7 @@ export default function ChatRoomPage() {
       id: 3,
       title: "00자전거 팝니다 사실 분",
       price: 5_350_000,
-      thumbUrl: "https://via.placeholder.com/120x120?text=BIKE",
+      thumbUrl: "",
     },
   });
 

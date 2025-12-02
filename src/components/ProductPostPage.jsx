@@ -98,8 +98,7 @@ export default function ProductPostPage() {
         
         setCategoryMap(map);
         setCategoryNameToCode(nameToCode);
-        console.log("✅ 카테고리 매핑:", map);
-        console.log("✅ 카테고리 이름->코드 매핑:", nameToCode);
+        // 카테고리 매핑 완료
       } catch (e) {
         console.error("카테고리 목록 가져오기 오류:", e);
       }
@@ -233,7 +232,7 @@ export default function ProductPostPage() {
           // status 등 나중에 필요하면 추가
         };
 
-        console.log("✏️ [수정] 전송 payload:", payload);
+        // 상품 수정 요청 전송
 
         const res = await fetch(`${API_BASE}/api/products/${id}`, {
           method: "PUT",
@@ -268,7 +267,7 @@ export default function ProductPostPage() {
         }
         
         if (!categoryName) {
-          console.error("카테고리 이름 변환 실패:", category);
+          // 카테고리 이름 변환 실패
           alert("카테고리를 다시 선택해주세요.");
           return;
         }
@@ -276,12 +275,12 @@ export default function ProductPostPage() {
         const categoryId = categoryMap[categoryName];
 
         if (!categoryId) {
-          console.error("카테고리 ID 매핑 실패:", { category, categoryName, categoryMap });
+          // 카테고리 ID 매핑 실패
           alert("카테고리 ID를 찾을 수 없습니다. 페이지를 새로고침하고 다시 시도해주세요.");
           return;
         }
 
-        console.log("✅ 카테고리 매핑 성공:", { category, categoryName, categoryId });
+        // 카테고리 매핑 성공
 
         const sellerId = getSellerId();
         if (!sellerId) {
@@ -303,15 +302,7 @@ export default function ProductPostPage() {
           }
         });
 
-        // 디버깅용: 실제 전송 값 확인
-        for (const [key, value] of formData.entries()) {
-          console.log("📦 [등록] FormData:", key, value);
-        }
-
-        console.log(
-          "🆕 [등록] FormData 전송 예정:",
-          `${API_BASE}/api/products/with-upload`
-        );
+        // FormData 전송
 
         const res = await fetch(`${API_BASE}/api/products/with-upload`, {
           method: "POST",
@@ -319,8 +310,6 @@ export default function ProductPostPage() {
         });
 
         const text = await res.text();
-        console.log("📥 [등록] 응답 status:", res.status);
-        console.log("📥 [등록] 응답 body:", text);
 
         if (!res.ok) {
           throw new Error("상품 등록 실패");
@@ -333,7 +322,7 @@ export default function ProductPostPage() {
           created = null;
         }
 
-        console.log("✅ 등록 결과:", created);
+        // 상품 등록 성공
 
         alert("상품이 등록되었습니다.");
         if (created?.id) {

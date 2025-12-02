@@ -27,8 +27,7 @@ import BottomNav from "./BottomNav";
 import { buildImageUrl } from "../lib/products";
 import { api } from "../lib/api";
 
-// 🔹 mock fallback 용
-import { MOCK_PRODUCTS } from "../data/mockProducts";
+// Mock 데이터 제거됨
 
 /* 사용자 ID 가져오기 (카카오 로그인) */
 const getUserId = () => {
@@ -39,7 +38,7 @@ const getUserId = () => {
       return profile.id;
     }
   } catch (e) {
-    console.error("프로필 파싱 실패:", e);
+    // 프로필 파싱 실패 (조용히 처리)
   }
   return null;
 };
@@ -60,7 +59,7 @@ export default function MainPage() {
         return profile.nickname || "사용자";
       }
     } catch (e) {
-      console.error("프로필 파싱 실패:", e);
+      // 프로필 파싱 실패 (조용히 처리)
     }
     return "사용자";
   };
@@ -106,24 +105,8 @@ export default function MainPage() {
 
       setRecommended(mapped);
     } catch (e) {
-      console.warn("[추천 상품] 백엔드 실패 → mock fallback", e);
-
-      const fallback = MOCK_PRODUCTS.slice(0, 5).map((raw) => ({
-        id: raw.id,
-        category: raw.category, // 이미 한글 카테고리 라벨
-        title: raw.title,
-        price: raw.price,
-        liked: !!raw.isWishlisted,
-        status:
-          raw.status === "예약중"
-            ? "RESERVED"
-            : raw.status === "판매완료"
-            ? "SOLD_OUT"
-            : "ON_SALE",
-        img: raw.thumbnail,
-      }));
-
-      setRecommended(fallback);
+      // 백엔드 실패 시 빈 배열로 표시
+      setRecommended([]);
     } finally {
       setLoadingRecommended(false);
     }
@@ -156,30 +139,8 @@ export default function MainPage() {
 
       setLikedList(mapped);
     } catch (e) {
-      console.warn("[찜 목록] 백엔드 실패 → mock fallback", e);
-
-      // fallback: MOCK_PRODUCTS 중 isWishlisted 기준
-      const wishItems = MOCK_PRODUCTS.filter((p) => p.isWishlisted).slice(
-        0,
-        5
-      );
-
-      const mapped = wishItems.map((raw) => ({
-        id: raw.id,
-        category: raw.category,
-        title: raw.title,
-        price: raw.price,
-        liked: true,
-        status:
-          raw.status === "예약중"
-            ? "RESERVED"
-            : raw.status === "판매완료"
-            ? "SOLD_OUT"
-            : "ON_SALE",
-        img: raw.thumbnail,
-      }));
-
-      setLikedList(mapped);
+      // 백엔드 실패 시 빈 배열로 표시
+      setLikedList([]);
     } finally {
       setLoadingLiked(false);
     }

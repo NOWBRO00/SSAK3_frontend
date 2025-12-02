@@ -6,7 +6,7 @@ import logo from "../image/Group 23.png";
 import backIcon from "../image/vector-33.png";
 import "../styles/CategoryPage.css";
 import BottomNav from "./BottomNav";
-import { MOCK_PRODUCTS } from "../data/mockProducts";
+// Mock 데이터 제거됨
 
 // 상태 스티커 이미지
 import stickerReserved from "../image/status-reserved.png";
@@ -78,7 +78,7 @@ export default function CategoryPage() {
     try {
       // ✅ 핵심: 백엔드에서 카테고리 ID(1~4)로 바로 조회
       //    GET /api/products/category/{categoryId}
-      console.log("[CategoryPage] 요청 카테고리:", categoryId, categoryName);
+      // 카테고리 조회 요청
 
       const rawList = await api(`/api/products/category/${categoryId}`);
 
@@ -97,23 +97,8 @@ export default function CategoryPage() {
 
       setItems(mapped);
     } catch (e) {
-      console.warn("[카테고리 리스트] 백엔드 실패 → mock fallback", e);
-
-      // 🔹 mock: categoryName(한글) 기준으로 필터
-      const filtered = MOCK_PRODUCTS.filter(
-        (p) => p.category === categoryName
-      ).map((raw) => ({
-        id: raw.id,
-        title: raw.title,
-        price: raw.price,
-        seller: raw.seller.nickname,
-        likes: raw.likes ?? 0,
-        liked: !!raw.isWishlisted,
-        img: raw.thumbnail,
-        status: normalizeStatus(raw.status),
-      }));
-
-      setItems(filtered);
+      // 백엔드 실패 시 빈 배열로 표시
+      setItems([]);
     } finally {
       setLoading(false);
     }

@@ -27,8 +27,7 @@ import searchIcon from "../image/icon-search.png";
 import { BASE_URL } from "../lib/api";
 
 
-// 🔹 더미 데이터
-import { MOCK_PRODUCTS } from "../data/mockProducts";
+// Mock 데이터 제거됨
 
 // 🔹 로딩 이미지
 import loaderImg from "../image/loader.png";
@@ -148,39 +147,8 @@ export default function ProductDetailPage() {
       setWishCount(mapped.wishCount);
       setIdx(0);
     } catch (e) {
-      console.error("[상품 조회 실패, mock fallback 시도]", e);
-
-      // 2) mock에서 fallback
-      const raw = MOCK_PRODUCTS.find((prod) => prod.id === Number(id));
-
-      if (!raw) {
-        setP(null);
-      } else {
-        const mapped = {
-          id: raw.id,
-          title: raw.title,
-          description: raw.description,
-          price: raw.price,
-          status: mapStatusFromKorean(raw.status),
-          category: { name: raw.category },
-          images: raw.images || [],
-          seller: {
-            id: raw.seller?.id,
-            nickname: raw.seller?.nickname ?? "익명",
-            profile_image_url: raw.seller?.profile_image_url || "",
-            mannerTemperature:
-              raw.seller?.mannerTemperature ?? DEFAULT_MANNER_TEMP,
-          },
-          isWishlisted: !!raw.isWishlisted,
-          wishCount: raw.likes ?? 0,
-          created_at: raw.createdAt,
-        };
-
-        setP(mapped);
-        setIsWish(mapped.isWishlisted);
-        setWishCount(mapped.wishCount);
-        setIdx(0);
-      }
+      // 상품 조회 실패
+      setP(null);
     } finally {
       setLoading(false);
     }
