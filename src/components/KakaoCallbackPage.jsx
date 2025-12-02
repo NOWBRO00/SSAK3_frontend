@@ -124,23 +124,44 @@ export default function KakaoCallbackPage() {
         if (data?.profile || data?.id) {
           const profile = data.profile || data;
           
-          // 백엔드가 { id: DB_PK, kakaoId: 카카오ID, ... } 형식으로 응답하는 경우
+          // 백엔드 응답 구조 확인:
+          // - 백엔드가 { id: DB_PK, kakaoId: 카카오ID, ... } 형식으로 응답하는 경우
+          // - 또는 { id: 카카오ID, ... } 형식일 수도 있음
+          // 
+          // 백엔드 로그를 보면: "구매자 조회 성공: id=1, kakaoId=4474375438"
+          // 즉, 백엔드가 DB PK와 카카오 ID를 모두 제공함
+          
+          // 백엔드가 명시적으로 kakaoId를 제공하는지 확인
+          const hasKakaoId = profile.kakaoId !== undefined && profile.kakaoId !== null;
+          
+          // 백엔드가 DB PK를 id로 보내는 경우:
+          // - profile.id가 작은 숫자(예: 1, 2, 3...)이고 profile.kakaoId가 큰 숫자(예: 4474375438)인 경우
+          // - 또는 profile.kakaoId가 명시적으로 있는 경우
+          const isDbPk = hasKakaoId || (profile.id && profile.id < 1000000); // DB PK는 보통 작은 숫자
+          
           const profileToSave = {
-            id: profile.id,              // DB PK (User.id) - API 호출 시 사용
-            kakaoId: profile.kakaoId || profile.id, // 카카오 ID (참고용)
+            id: isDbPk ? profile.id : (profile.kakaoId || profile.id), // DB PK (User.id) - API 호출 시 사용
+            kakaoId: hasKakaoId ? profile.kakaoId : (isDbPk ? null : profile.id), // 카카오 ID (참고용)
             nickname: profile.nickname,
             email: profile.email,
             profileImageUrl: profile.profileImageUrl || profile.profileImage,
             thumbnailImageUrl: profile.thumbnailImageUrl || profile.thumbnailImage,
           };
           
+          // kakaoId가 없으면 id를 kakaoId로 사용 (하위 호환)
+          if (!profileToSave.kakaoId && profileToSave.id) {
+            profileToSave.kakaoId = profileToSave.id;
+          }
+          
           localStorage.setItem("ssak3.profile", JSON.stringify(profileToSave));
           
           if (process.env.NODE_ENV === "development") {
+            console.log("[카카오 로그인] 백엔드 응답:", data);
             console.log("[카카오 로그인] 프로필 저장:", {
               id: profileToSave.id,        // DB PK
               kakaoId: profileToSave.kakaoId, // 카카오 ID
               nickname: profileToSave.nickname,
+              originalProfile: profile,
             });
           }
         }
