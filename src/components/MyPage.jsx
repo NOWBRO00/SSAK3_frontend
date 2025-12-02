@@ -73,6 +73,7 @@ export default function MyPage() {
         if (!userId) return;
         
         // GET /api/users/{id} - 사용자 정보 조회
+        // 백엔드가 카카오 ID를 지원하지 않을 수 있으므로 404 에러는 무시
         const res = await fetch(`${API_BASE}/api/users/${userId}`, {
           credentials: "include",
         });
@@ -84,9 +85,20 @@ export default function MyPage() {
           }
           // 판매 수는 내 상품 목록 길이로 계산
           // 또는 백엔드에서 제공하는 필드가 있다면 사용
+        } else if (res.status === 404) {
+          // 404 에러는 백엔드가 카카오 ID로 사용자 조회를 지원하지 않는 경우
+          // 기본값 유지 (온도는 기본값 36.5)
+          if (process.env.NODE_ENV === "development") {
+            console.log("[사용자 정보] 404 - 카카오 ID로 사용자 조회 불가, 기본값 사용");
+          }
+        } else {
+          // 다른 에러는 로그만 남기고 기본값 유지
+          if (process.env.NODE_ENV === "development") {
+            console.error("[사용자 정보 조회 실패]:", res.status, res.statusText);
+          }
         }
       } catch (e) {
-        // 백엔드 실패 시 기본값 유지
+        // 네트워크 에러 등 - 기본값 유지
         if (process.env.NODE_ENV === "development") {
           console.error("[사용자 정보 조회 실패]:", e);
         }
