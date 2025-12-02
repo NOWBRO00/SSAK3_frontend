@@ -113,6 +113,7 @@ export default function KakaoCallbackPage() {
         // { accessToken, refreshToken, profile: { id: DB_PK, kakaoId: 카카오ID, nickname, email, ... } }
         // 또는 직접 { id: DB_PK, kakaoId: 카카오ID, nickname, ... } 형식일 수 있음
         
+        // 토큰 먼저 저장 (이후 API 호출에 필요)
         if (data?.accessToken) {
           localStorage.setItem("ssak3.accessToken", data.accessToken);
         }
@@ -123,13 +124,6 @@ export default function KakaoCallbackPage() {
         // 프로필 저장: DB PK(id)와 카카오 ID(kakaoId) 분리 저장
         if (data?.profile || data?.id) {
           const profile = data.profile || data;
-          
-          // 백엔드 응답 구조 확인:
-          // - 백엔드가 { id: DB_PK, kakaoId: 카카오ID, ... } 형식으로 응답하는 경우
-          // - 또는 { id: 카카오ID, ... } 형식일 수도 있음
-          // 
-          // 백엔드 로그를 보면: "구매자 조회 성공: id=1, kakaoId=4474375438"
-          // 즉, 백엔드가 DB PK와 카카오 ID를 모두 제공함
           
           // 백엔드 응답 구조 확인:
           // 백엔드 로그: "구매자 조회 성공: id=1, kakaoId=4474375438"
@@ -157,22 +151,16 @@ export default function KakaoCallbackPage() {
             dbPk = null; // DB PK는 백엔드에서 가져와야 함
           }
           
-          const profileToSave = {
-            id: dbPk || kakaoId, // DB PK가 있으면 사용, 없으면 카카오 ID (하위 호환)
-            kakaoId: kakaoId || dbPk, // 카카오 ID가 있으면 사용, 없으면 id 사용 (하위 호환)
-            nickname: profile.nickname,
-            email: profile.email,
-            profileImageUrl: profile.profileImageUrl || profile.profileImage,
-            thumbnailImageUrl: profile.thumbnailImageUrl || profile.thumbnailImage,
-          };
-          
-          // DB PK가 없으면 백엔드에서 가져오기 시도
-          if (!dbPk && kakaoId) {
+          // DB PK가 없으면 백엔드에서 가져오기 시도 (토큰 저장 후)
+          if (!dbPk && kakaoId && data?.accessToken) {
             try {
-              // 백엔드에서 /api/users/me 또는 /api/users/kakao/{kakaoId}로 DB PK 조회 시도
-              // 먼저 /api/users/me 시도 (현재 로그인한 사용자 정보)
+              // 백엔드에서 /api/users/me로 DB PK 조회 시도
               const userRes = await fetch(getApiUrl("/api/users/me"), {
+                method: "GET",
                 credentials: "include",
+                headers: {
+                  "Content-Type": "application/json",
+                },
               });
               
               if (userRes.ok) {
@@ -180,10 +168,13 @@ export default function KakaoCallbackPage() {
                 if (userData.id && userData.id < 1000000) {
                   // DB PK 찾음
                   dbPk = userData.id;
-                  profileToSave.id = dbPk;
                   if (process.env.NODE_ENV === "development") {
                     console.log("[카카오 로그인] /api/users/me에서 DB PK 조회 성공:", dbPk);
                   }
+                }
+              } else {
+                if (process.env.NODE_ENV === "development") {
+                  console.warn("[카카오 로그인] /api/users/me 실패:", userRes.status);
                 }
               }
             } catch (e) {
@@ -192,6 +183,15 @@ export default function KakaoCallbackPage() {
               }
             }
           }
+          
+          const profileToSave = {
+            id: dbPk || kakaoId, // DB PK가 있으면 사용, 없으면 카카오 ID (하위 호환)
+            kakaoId: kakaoId || dbPk, // 카카오 ID가 있으면 사용, 없으면 id 사용 (하위 호환)
+            nickname: profile.nickname,
+            email: profile.email,
+            profileImageUrl: profile.profileImageUrl || profile.profileImage,
+            thumbnailImageUrl: profile.thumbnailImageUrl || profile.thumbnailImage,
+          };
           
           localStorage.setItem("ssak3.profile", JSON.stringify(profileToSave));
           
@@ -202,6 +202,7 @@ export default function KakaoCallbackPage() {
               kakaoId: profileToSave.kakaoId, // 카카오 ID
               nickname: profileToSave.nickname,
               originalProfile: profile,
+              dbPkFound: !!dbPk,
             });
           }
         }
