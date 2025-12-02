@@ -341,20 +341,49 @@ export default function ProductDetailPage() {
     }
     
     try {
+      // 백엔드가 내부 사용자 ID를 기대할 수 있으므로 sellerId도 함께 전송
+      // sellerId는 백엔드 내부 ID일 가능성이 높음
+      const sellerBackendId = p.seller?.id || p.sellerId;
+      
+      // 요청 본문 구성
+      const requestBody = {
+        productId: p.id,
+        buyerId: userId, // 카카오 ID 또는 내부 ID (백엔드가 처리)
+      };
+      
+      // sellerId가 있으면 함께 전송
+      if (sellerBackendId) {
+        requestBody.sellerId = sellerBackendId;
+      }
+      
+      if (process.env.NODE_ENV === "development") {
+        console.log("[채팅방 생성] 요청:", requestBody);
+      }
+      
       const res = await fetch(`${API_BASE}/api/chatrooms`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          productId: p.id,
-          buyerId: userId,
-        }),
+        body: JSON.stringify(requestBody),
       });
       
       if (!res.ok) {
         const errorText = await res.text();
         if (process.env.NODE_ENV === "development") {
           console.error("[채팅방 생성 실패] 응답:", res.status, errorText);
+          console.error("[채팅방 생성 실패] 요청 본문:", requestBody);
+        }
+        
+        // 400 에러인 경우 더 자세한 메시지 표시
+        if (res.status === 400) {
+          try {
+            const errorJson = JSON.parse(errorText);
+            alert(errorJson.message || "채팅방 생성에 실패했습니다. 입력 정보를 확인해주세요.");
+          } catch {
+            alert("채팅방 생성에 실패했습니다. 입력 정보를 확인해주세요.");
+          }
+        } else {
+          alert("채팅방 생성에 실패했습니다.");
         }
         throw new Error("chat fail");
       }
