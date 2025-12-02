@@ -87,17 +87,31 @@ export default function ChatRoomPage() {
     setLoadingRoom(true);
     try {
       // 1) 채팅방 정보 가져오기
-      // 백엔드 명세: GET /api/chatrooms/{chatRoomId} 또는 GET /api/chatrooms/rooms/{chatRoomId}
-      const res = await fetch(`${API_BASE}/api/chatrooms/${roomId}`, {
+      // 백엔드 명세: GET /api/chatrooms/{chatRoomId}
+      const url = `${API_BASE}/api/chatrooms/${roomId}`;
+      
+      if (process.env.NODE_ENV === "development") {
+        console.log("[채팅방 정보] 조회 시작:", url, { roomId });
+      }
+      
+      const res = await fetch(url, {
         credentials: "include",
       });
 
-        if (!res.ok) {
-          throw new Error("채팅방 정보 조회 실패");
+      if (!res.ok) {
+        const errorText = await res.text();
+        if (process.env.NODE_ENV === "development") {
+          console.error("[채팅방 정보] 조회 실패:", res.status, errorText);
         }
+        throw new Error(`채팅방 정보 조회 실패: ${res.status}`);
+      }
 
-        const data = await res.json();
-        const userId = getUserId();
+      const data = await res.json();
+      const userId = getUserId();
+      
+      if (process.env.NODE_ENV === "development") {
+        console.log("[채팅방 정보] 조회 성공:", data);
+      }
 
         // 백엔드 응답 구조:
         // { id, buyerId, sellerId, productId, buyer: {id, kakaoId, nickname, ...}, seller: {...}, product: {...} }
@@ -159,6 +173,12 @@ export default function ChatRoomPage() {
         if (process.env.NODE_ENV === "development") {
           console.error("[채팅방 정보 조회 실패]:", e);
         }
+        // 에러 발생 시에도 로딩 상태 해제
+        setRoomMeta({
+          roomId,
+          peer: { id: null, nickname: "오류" },
+          product: { id: null, title: "", price: 0, thumbUrl: "" },
+        });
       } finally {
         setLoadingRoom(false);
       }
