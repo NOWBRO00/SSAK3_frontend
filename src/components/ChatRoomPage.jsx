@@ -86,6 +86,7 @@ export default function ChatRoomPage() {
       }
 
       try {
+        // 1) 채팅방 정보 가져오기
         const res = await fetch(`${API_BASE}/api/chatrooms/${roomId}`, {
           credentials: "include",
         });
@@ -100,12 +101,54 @@ export default function ChatRoomPage() {
         // 상대방 정보 찾기 (seller 또는 buyer 중 현재 사용자가 아닌 사람)
         const sellerId = data.sellerId || data.seller?.id;
         const buyerId = data.buyerId || data.buyer?.id;
-        const isBuyer = userId && (String(buyerId) === String(userId) || String(data.buyerKakaoId) === String(userId));
+        const sellerKakaoId = data.sellerKakaoId || data.seller?.kakaoId;
+        const buyerKakaoId = data.buyerKakaoId || data.buyer?.kakaoId;
+        
+        const isBuyer = userId && (
+          String(buyerId) === String(userId) || 
+          String(buyerKakaoId) === String(userId) ||
+          String(data.buyerKakaoId) === String(userId)
+        );
         
         const peerId = isBuyer ? sellerId : buyerId;
         const peerNickname = isBuyer 
           ? (data.sellerNickname || data.seller?.nickname || "판매자")
           : (data.buyerNickname || data.buyer?.nickname || "구매자");
+
+        const productId = data.productId || data.product?.id;
+        
+        // 2) 상품 상세 정보 가져오기 (채팅방 정보에 상품 정보가 충분하지 않은 경우)
+        let productInfo = {
+          id: productId,
+          title: data.productTitle || data.product?.title || "",
+          price: data.productPrice || data.product?.price || 0,
+          thumbUrl: data.productImageUrl || data.product?.imageUrls?.[0] || "",
+        };
+
+        // 상품 상세 정보가 없거나 불완전하면 별도로 가져오기
+        if (productId && (!productInfo.title || !productInfo.thumbUrl)) {
+          try {
+            const productRes = await fetch(`${API_BASE}/api/products/${productId}`, {
+              credentials: "include",
+            });
+            
+            if (productRes.ok) {
+              const productData = await productRes.json();
+              productInfo = {
+                id: productData.id || productId,
+                title: productData.title || "",
+                price: productData.price || 0,
+                thumbUrl: Array.isArray(productData.imageUrls) && productData.imageUrls[0]
+                  ? buildImageUrl(productData.imageUrls[0])
+                  : "",
+              };
+            }
+          } catch (productErr) {
+            if (process.env.NODE_ENV === "development") {
+              console.error("[상품 정보 조회 실패]:", productErr);
+            }
+          }
+        }
 
         setRoomMeta({
           roomId: data.id || data.roomId || roomId,
@@ -113,12 +156,7 @@ export default function ChatRoomPage() {
             id: peerId,
             nickname: peerNickname,
           },
-          product: {
-            id: data.productId || data.product?.id,
-            title: data.productTitle || data.product?.title || "",
-            price: data.productPrice || data.product?.price || 0,
-            thumbUrl: data.productImageUrl || data.product?.imageUrls?.[0] || "",
-          },
+          product: productInfo,
         });
       } catch (e) {
         if (process.env.NODE_ENV === "development") {
@@ -417,7 +455,9 @@ export default function ChatRoomPage() {
           <div className="prod-texts">
             <div className="prod-sub">{roomMeta.product.title}</div>
             <div className="prod-price">
-              {roomMeta.product.price.toLocaleString()} 원
+              {roomMeta.product.price && roomMeta.product.price > 0 
+                ? `${roomMeta.product.price.toLocaleString()} 원`
+                : ""}
             </div>
           </div>
         </section>
