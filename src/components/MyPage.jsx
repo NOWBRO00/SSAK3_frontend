@@ -64,7 +64,6 @@ export default function MyPage() {
 
   // ✅ 1) 내 상품 목록 (백엔드 API에서 가져오기)
   const [myItems, setMyItems] = useState([]);
-  const [loadingMyItems, setLoadingMyItems] = useState(true);
 
   // ✅ 2) 찜 목록: 명세서 기준 /api/likes/user/{userId}
   const [wishItems, setWishItems] = useState([]);
@@ -73,7 +72,6 @@ export default function MyPage() {
   // ✅ 내 상품 목록 로드
   useEffect(() => {
     const loadMyItems = async () => {
-      setLoadingMyItems(true);
       try {
         const userId = getUserId();
         if (!userId) {
@@ -104,8 +102,6 @@ export default function MyPage() {
         if (process.env.NODE_ENV === "development") {
           console.error("[내 상품 목록 조회 실패]:", e);
         }
-      } finally {
-        setLoadingMyItems(false);
       }
     };
 
