@@ -568,11 +568,9 @@ export default function ProductDetailPage() {
       <div className="ss-body">
         <div className="ss-meta">
           <div className="ss-cat">{p.category?.name || "기타"}</div>
-          {isMyProduct && (
-            <button className="ss-icon-btn" onClick={() => setIsMenuOpen(true)}>
-              <DotsIcon />
-            </button>
-          )}
+          <button className="ss-icon-btn" onClick={() => setIsMenuOpen(true)}>
+            <DotsIcon />
+          </button>
         </div>
 
         <h1 className="ss-title">{p.title}</h1>
