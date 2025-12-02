@@ -70,6 +70,7 @@ export default function CategoryPage() {
   const [sortOpen, setSortOpen] = useState(false);
   const [sortType, setSortType] = useState("인기순");
   const [loading, setLoading] = useState(true);
+  const [wishList, setWishList] = useState([]); // 찜 목록
 
   /** 🔥 카테고리별 상품 조회 (백엔드 + mock fallback) */
   const load = useCallback(async () => {
@@ -103,6 +104,41 @@ export default function CategoryPage() {
       setLoading(false);
     }
   }, [categoryId]);
+
+  // 찜 목록 로드
+  useEffect(() => {
+    const loadWishList = async () => {
+      try {
+        const userId = getUserId();
+        if (!userId) return;
+        
+        const likes = await api(`/api/likes/user/${userId}`);
+        const wishProductIds = (likes || []).map((raw) => {
+          const product = raw.product || raw;
+          return product.id || raw.productId || raw.id;
+        });
+        setWishList(wishProductIds);
+      } catch (e) {
+        // 찜 목록 로드 실패 시 빈 배열
+        setWishList([]);
+      }
+    };
+    
+    loadWishList();
+  }, []);
+
+  // 찜 목록이 로드되면 상품 목록의 찜 상태 업데이트
+  useEffect(() => {
+    if (wishList.length > 0) {
+      const wishSet = new Set(wishList);
+      setItems((prev) =>
+        prev.map((item) => ({
+          ...item,
+          liked: wishSet.has(item.id),
+        }))
+      );
+    }
+  }, [wishList]);
 
   useEffect(() => {
     load();

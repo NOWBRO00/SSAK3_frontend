@@ -162,6 +162,19 @@ export default function MainPage() {
     loadLikedList();
   }, [loadRecommended, loadLikedList]);
 
+  // 찜 목록이 로드되면 추천 상품의 찜 상태 업데이트
+  useEffect(() => {
+    if (likedList.length > 0) {
+      const likedProductIds = new Set(likedList.map((p) => p.id));
+      setRecommended((prev) =>
+        prev.map((p) => ({
+          ...p,
+          liked: likedProductIds.has(p.id),
+        }))
+      );
+    }
+  }, [likedList]);
+
   // ✅ 찜 토글 (추천 상품) - API 요청 포함
   const toggleLikeRecommended = useCallback(async (productId) => {
     const product = recommended.find((p) => p.id === productId);

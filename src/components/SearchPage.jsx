@@ -24,6 +24,9 @@ import stickerSoldout from "../image/status-soldout.png";
 // 공통 api
 import { api } from "../lib/api";
 
+// ✅ 공통 인증 유틸리티 사용
+import { getUserId } from "../utils/auth";
+
 export default function SearchPage() {
   const navigate = useNavigate();
 
@@ -43,6 +46,7 @@ export default function SearchPage() {
 
   // 실제 검색 결과
   const [products, setProducts] = useState([]);
+  const [wishList, setWishList] = useState([]); // 찜 목록
 
   const handleInputChange = (e) => setSearchTerm(e.target.value);
 
@@ -89,6 +93,41 @@ export default function SearchPage() {
     },
     [] // setState 들은 안정적이어서 deps에 안 넣어도 ESLint 통과
   );
+
+  // 찜 목록 로드
+  useEffect(() => {
+    const loadWishList = async () => {
+      try {
+        const userId = getUserId();
+        if (!userId) return;
+        
+        const likes = await api(`/api/likes/user/${userId}`);
+        const wishProductIds = (likes || []).map((raw) => {
+          const product = raw.product || raw;
+          return product.id || raw.productId || raw.id;
+        });
+        setWishList(wishProductIds);
+      } catch (e) {
+        // 찜 목록 로드 실패 시 빈 배열
+        setWishList([]);
+      }
+    };
+    
+    loadWishList();
+  }, []);
+
+  // 찜 목록이 로드되면 검색 결과의 찜 상태 업데이트
+  useEffect(() => {
+    if (wishList.length > 0) {
+      const wishSet = new Set(wishList);
+      setProducts((prev) =>
+        prev.map((p) => ({
+          ...p,
+          liked: wishSet.has(p.id),
+        }))
+      );
+    }
+  }, [wishList]);
 
   // 🔹 페이지 처음 열릴 때 기본 검색 한 번 실행
   useEffect(() => {

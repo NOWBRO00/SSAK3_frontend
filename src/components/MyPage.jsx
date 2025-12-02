@@ -162,6 +162,24 @@ export default function MyPage() {
     
     window.addEventListener('wishListUpdated', handleWishListUpdate);
     
+    return () => {
+      window.removeEventListener('wishListUpdated', handleWishListUpdate);
+    };
+  }, []);
+
+  // 찜 목록이 로드되면 내 상품의 찜 상태 업데이트
+  useEffect(() => {
+    if (wishItems.length > 0) {
+      const wishedProductIds = new Set(wishItems.map((p) => p.id));
+      setMyItems((prev) =>
+        prev.map((item) => ({
+          ...item,
+          wished: wishedProductIds.has(item.id),
+        }))
+      );
+    }
+  }, [wishItems]);
+    
     // 상품 상태 변경 이벤트 리스너 (내 상품 목록 갱신)
     const handleProductStatusUpdate = () => {
       // 내 상품 목록 다시 로드
