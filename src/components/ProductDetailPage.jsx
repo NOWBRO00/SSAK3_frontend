@@ -143,6 +143,10 @@ export default function ProductDetailPage() {
     } catch (e) {
       // 상품 조회 실패
       setP(null);
+      // 에러 로그는 개발 환경에서만
+      if (process.env.NODE_ENV === "development") {
+        console.error("[상품 조회 실패]:", e);
+      }
     } finally {
       setLoading(false);
     }
