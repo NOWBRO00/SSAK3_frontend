@@ -87,6 +87,7 @@ export default function ChatRoomPage() {
 
       try {
         // 1) 채팅방 정보 가져오기
+        // 백엔드 명세: GET /api/chatrooms/{chatRoomId} 또는 GET /api/chatrooms/rooms/{chatRoomId}
         const res = await fetch(`${API_BASE}/api/chatrooms/${roomId}`, {
           credentials: "include",
         });
@@ -269,15 +270,21 @@ export default function ChatRoomPage() {
         throw new Error("로그인이 필요합니다.");
       }
 
-      const params = new URLSearchParams();
-      params.append("roomId", roomId);
-      params.append("senderId", userId);
-      params.append("content", content);
+      // 백엔드 명세: POST /api/chatrooms/rooms/{chatRoomId}/messages?senderId={senderId}
+      // RequestBody: { "content": "..." }
+      const url = `${API_BASE}/api/chatrooms/rooms/${roomId}/messages?senderId=${userId}`;
+      
+      if (process.env.NODE_ENV === "development") {
+        console.log("[메시지 전송] 요청:", url, { content });
+      }
 
-      const res = await fetch(`${API_BASE}/api/chatrooms/${roomId}/messages?${params.toString()}`, {
+      const res = await fetch(url, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          content: content,
+        }),
       });
 
       if (!res.ok) {
