@@ -179,7 +179,9 @@ export default function MyPage() {
       );
     }
   }, [wishItems]);
-    
+
+  // 상품 상태 변경 및 삭제 이벤트 리스너
+  useEffect(() => {
     // 상품 상태 변경 이벤트 리스너 (내 상품 목록 갱신)
     const handleProductStatusUpdate = () => {
       // 내 상품 목록 다시 로드
@@ -210,8 +212,6 @@ export default function MyPage() {
       };
       loadMyItems();
     };
-    
-    window.addEventListener('productStatusUpdated', handleProductStatusUpdate);
     
     // 상품 삭제 이벤트 리스너
     const handleProductDeleted = () => {
@@ -244,10 +244,10 @@ export default function MyPage() {
       loadMyItems();
     };
     
+    window.addEventListener('productStatusUpdated', handleProductStatusUpdate);
     window.addEventListener('productDeleted', handleProductDeleted);
     
     return () => {
-      window.removeEventListener('wishListUpdated', handleWishListUpdate);
       window.removeEventListener('productStatusUpdated', handleProductStatusUpdate);
       window.removeEventListener('productDeleted', handleProductDeleted);
     };
