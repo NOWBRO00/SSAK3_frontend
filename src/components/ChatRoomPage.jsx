@@ -98,62 +98,53 @@ export default function ChatRoomPage() {
         const data = await res.json();
         const userId = getUserId();
 
+        // 백엔드 응답 구조:
+        // { id, buyerId, sellerId, productId, buyer: {id, kakaoId, nickname, ...}, seller: {...}, product: {...} }
+        
         // 상대방 정보 찾기 (seller 또는 buyer 중 현재 사용자가 아닌 사람)
         const sellerId = data.sellerId || data.seller?.id;
         const buyerId = data.buyerId || data.buyer?.id;
-        const sellerKakaoId = data.sellerKakaoId || data.seller?.kakaoId;
-        const buyerKakaoId = data.buyerKakaoId || data.buyer?.kakaoId;
+        const sellerKakaoId = data.seller?.kakaoId;
+        const buyerKakaoId = data.buyer?.kakaoId;
         
+        // 현재 사용자가 buyer인지 seller인지 확인
         const isBuyer = userId && (
           String(buyerId) === String(userId) || 
           String(buyerKakaoId) === String(userId) ||
-          String(data.buyerKakaoId) === String(userId)
+          String(data.buyer?.kakaoId) === String(userId)
         );
         
         // sellerKakaoId도 사용 (디버깅용)
         if (process.env.NODE_ENV === "development") {
-          console.log("[채팅방] 상대방 정보:", { sellerId, buyerId, sellerKakaoId, buyerKakaoId, isBuyer });
+          console.log("[채팅방] 상대방 정보:", { sellerId, buyerId, sellerKakaoId, buyerKakaoId, isBuyer, data });
         }
         
         const peerId = isBuyer ? sellerId : buyerId;
         const peerNickname = isBuyer 
-          ? (data.sellerNickname || data.seller?.nickname || "판매자")
-          : (data.buyerNickname || data.buyer?.nickname || "구매자");
+          ? (data.seller?.nickname || "판매자")
+          : (data.buyer?.nickname || "구매자");
 
-        const productId = data.productId || data.product?.id;
+        // 상품 정보는 백엔드에서 product 객체로 제공됨
+        const product = data.product || {};
+        const productId = data.productId || product.id;
         
-        // 2) 상품 상세 정보 가져오기 (채팅방 정보에 상품 정보가 충분하지 않은 경우)
-        let productInfo = {
-          id: productId,
-          title: data.productTitle || data.product?.title || "",
-          price: data.productPrice || data.product?.price || 0,
-          thumbUrl: data.productImageUrl || data.product?.imageUrls?.[0] || "",
-        };
-
-        // 상품 상세 정보가 없거나 불완전하면 별도로 가져오기
-        if (productId && (!productInfo.title || !productInfo.thumbUrl)) {
-          try {
-            const productRes = await fetch(`${API_BASE}/api/products/${productId}`, {
-              credentials: "include",
-            });
-            
-            if (productRes.ok) {
-              const productData = await productRes.json();
-              productInfo = {
-                id: productData.id || productId,
-                title: productData.title || "",
-                price: productData.price || 0,
-                thumbUrl: Array.isArray(productData.imageUrls) && productData.imageUrls[0]
-                  ? buildImageUrl(productData.imageUrls[0])
-                  : "",
-              };
-            }
-          } catch (productErr) {
-            if (process.env.NODE_ENV === "development") {
-              console.error("[상품 정보 조회 실패]:", productErr);
-            }
-          }
+        // 상품 이미지 URL 처리
+        let thumbUrl = "";
+        if (product.images && Array.isArray(product.images) && product.images.length > 0) {
+          const firstImage = product.images[0];
+          thumbUrl = typeof firstImage === 'string' 
+            ? buildImageUrl(firstImage)
+            : buildImageUrl(firstImage.imageUrl || firstImage.url || "");
+        } else if (product.imageUrls && Array.isArray(product.imageUrls) && product.imageUrls.length > 0) {
+          thumbUrl = buildImageUrl(product.imageUrls[0]);
         }
+        
+        const productInfo = {
+          id: productId,
+          title: product.title || "",
+          price: product.price || 0,
+          thumbUrl: thumbUrl,
+        };
 
         setRoomMeta({
           roomId: data.id || data.roomId || roomId,

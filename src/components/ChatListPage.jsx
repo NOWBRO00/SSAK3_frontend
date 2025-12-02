@@ -61,32 +61,52 @@ export default function ChatListPage() {
       if (!res.ok) throw new Error("채팅 목록 조회 실패");
 
       const rawList = await res.json();
+      const currentUserId = getUserId(); // 상위 스코프의 userId와 구분
 
-      // 🔹 백엔드 응답 예시 가정:
+      // 백엔드 응답 구조:
       // [
       //   {
       //     "id": 1,
-      //     "roomId": 1,
-      //     "otherNickname": "닉네임123",
-      //     "lastMessage": "아직 판매 하고 계신가요?",
-      //     "lastMessageAt": "2025-11-03T07:00:00Z",
-      //     "unreadCount": 4
+      //     "buyerId": 1,
+      //     "sellerId": 2,
+      //     "buyer": { id, kakaoId, nickname, ... },
+      //     "seller": { id, kakaoId, nickname, ... },
+      //     "lastMessage": { id, content, senderId, createdAt, ... },
+      //     "unreadCount": null,
+      //     ...
       //   }
       // ]
-      const mapped = rawList.map((raw) => ({
-        id: raw.id ?? raw.roomId, // 라우터에서 /chat/:roomId 로 사용
-        peer: {
-          nickname:
-            raw.otherNickname ||
-            raw.peerNickname ||
-            raw.sellerNickname ||
-            raw.buyerNickname ||
-            "상대방",
-        },
-        lastMessage: raw.lastMessage || raw.lastMessageContent || "",
-        lastMessageAt: raw.lastMessageAt || raw.updatedAt || raw.createdAt,
-        unreadCount: raw.unreadCount ?? 0,
-      }));
+      const mapped = rawList.map((raw) => {
+        // 현재 사용자가 buyer인지 seller인지 확인
+        const isBuyer = currentUserId && (
+          String(raw.buyerId) === String(currentUserId) ||
+          String(raw.buyer?.kakaoId) === String(currentUserId)
+        );
+        
+        // 상대방 정보 (현재 사용자가 buyer면 seller, seller면 buyer)
+        const peer = isBuyer ? raw.seller : raw.buyer;
+        const peerNickname = peer?.nickname || (isBuyer ? "판매자" : "구매자");
+        
+        // lastMessage가 객체인 경우 content 추출
+        const lastMessage = typeof raw.lastMessage === 'object' && raw.lastMessage !== null
+          ? (raw.lastMessage.content || raw.lastMessage.text || raw.lastMessage.message || "")
+          : (raw.lastMessage || raw.lastMessageContent || "");
+        
+        // lastMessageAt 추출 (lastMessage 객체에서 또는 직접)
+        const lastMessageAt = typeof raw.lastMessage === 'object' && raw.lastMessage !== null
+          ? (raw.lastMessage.createdAt || raw.lastMessage.sentAt)
+          : (raw.lastMessageAt || raw.updatedAt || raw.createdAt);
+        
+        return {
+          id: raw.id ?? raw.roomId, // 라우터에서 /chat/:roomId 로 사용
+          peer: {
+            nickname: peerNickname,
+          },
+          lastMessage: lastMessage,
+          lastMessageAt: lastMessageAt,
+          unreadCount: raw.unreadCount ?? 0,
+        };
+      });
 
       setChats(mapped || []);
     } catch (e) {
