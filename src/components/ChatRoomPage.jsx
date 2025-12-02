@@ -175,7 +175,8 @@ export default function ChatRoomPage() {
     }
 
     try {
-      const res = await fetch(`${API_BASE}/api/chatrooms/${roomId}/messages`, {
+      // 백엔드 명세: GET /api/chatrooms/rooms/{chatRoomId}/messages
+      const res = await fetch(`${API_BASE}/api/chatrooms/rooms/${roomId}/messages`, {
         credentials: "include",
       });
 
