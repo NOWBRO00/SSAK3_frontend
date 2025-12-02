@@ -109,18 +109,40 @@ export default function KakaoCallbackPage() {
 
         const data = await response.json();
 
-        // 백엔드 응답: accessToken, refreshToken (UUID 기반), profile
-        // profile 구조: { id, nickname, email, profileImage }
-        // 주의: profile.id는 카카오 ID일 수 있고, 백엔드 사용자 ID일 수도 있음
+        // 백엔드 응답 구조:
+        // { accessToken, refreshToken, profile: { id: DB_PK, kakaoId: 카카오ID, nickname, email, ... } }
+        // 또는 직접 { id: DB_PK, kakaoId: 카카오ID, nickname, ... } 형식일 수 있음
+        
         if (data?.accessToken) {
           localStorage.setItem("ssak3.accessToken", data.accessToken);
         }
         if (data?.refreshToken) {
           localStorage.setItem("ssak3.refreshToken", data.refreshToken);
         }
-        if (data?.profile) {
-          // profile: { id, nickname, email, profileImage }
-          localStorage.setItem("ssak3.profile", JSON.stringify(data.profile));
+        
+        // 프로필 저장: DB PK(id)와 카카오 ID(kakaoId) 분리 저장
+        if (data?.profile || data?.id) {
+          const profile = data.profile || data;
+          
+          // 백엔드가 { id: DB_PK, kakaoId: 카카오ID, ... } 형식으로 응답하는 경우
+          const profileToSave = {
+            id: profile.id,              // DB PK (User.id) - API 호출 시 사용
+            kakaoId: profile.kakaoId || profile.id, // 카카오 ID (참고용)
+            nickname: profile.nickname,
+            email: profile.email,
+            profileImageUrl: profile.profileImageUrl || profile.profileImage,
+            thumbnailImageUrl: profile.thumbnailImageUrl || profile.thumbnailImage,
+          };
+          
+          localStorage.setItem("ssak3.profile", JSON.stringify(profileToSave));
+          
+          if (process.env.NODE_ENV === "development") {
+            console.log("[카카오 로그인] 프로필 저장:", {
+              id: profileToSave.id,        // DB PK
+              kakaoId: profileToSave.kakaoId, // 카카오 ID
+              nickname: profileToSave.nickname,
+            });
+          }
         }
 
         setStatus(CALLBACK_STATUS.SUCCESS);
