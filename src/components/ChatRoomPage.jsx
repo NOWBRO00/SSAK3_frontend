@@ -110,6 +110,11 @@ export default function ChatRoomPage() {
           String(data.buyerKakaoId) === String(userId)
         );
         
+        // sellerKakaoId도 사용 (디버깅용)
+        if (process.env.NODE_ENV === "development") {
+          console.log("[채팅방] 상대방 정보:", { sellerId, buyerId, sellerKakaoId, buyerKakaoId, isBuyer });
+        }
+        
         const peerId = isBuyer ? sellerId : buyerId;
         const peerNickname = isBuyer 
           ? (data.sellerNickname || data.seller?.nickname || "판매자")
