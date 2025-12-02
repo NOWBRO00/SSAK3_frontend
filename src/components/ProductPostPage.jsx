@@ -12,19 +12,27 @@ import { BASE_URL } from "../lib/api";
 const API_BASE = BASE_URL;
 
 // 백엔드 categoryName -> 프론트 코드 매핑 (수정 모드에서 사용)
+// 주의: 백엔드 실제 카테고리 이름을 사용해야 함
+// 로그에서 확인된 백엔드 카테고리: 의류(1), 전자제품(2), 가구(3), 도서(4), 스포츠(5)
 const CATEGORY_CODE_MAP = {
   "의류": "clothes",
+  "도서": "books",  // 백엔드 실제 이름
+  "전자제품": "appliances",  // 백엔드 실제 이름
+  "가구": "helper",  // 백엔드 실제 이름
+  // 호환성을 위한 별칭
   "도서 / 문구": "books",
   "가전 / 주방": "appliances",
   "도우미 / 기타": "helper",
 };
 
 // 프론트 코드 -> 백엔드 categoryName 매핑 (등록 모드에서 사용)
+// 백엔드에서 동적으로 가져온 카테고리 이름을 우선 사용
+// 하지만 백엔드 실제 이름으로 매핑해야 함
 const CATEGORY_NAME_MAP = {
   "clothes": "의류",
-  "books": "도서 / 문구",
-  "appliances": "가전 / 주방",
-  "helper": "도우미 / 기타",
+  "books": "도서",  // 백엔드 실제 이름: "도서"
+  "appliances": "전자제품",  // 백엔드 실제 이름: "전자제품"
+  "helper": "가구",  // 백엔드 실제 이름: "가구"
 };
 
 // ✅ 판매자 ID 가져오기 (카카오 로그인)
@@ -53,7 +61,8 @@ export default function ProductPostPage() {
   const [category, setCategory] = useState(""); // clothes / books / appliances / helper
   const [details, setDetails] = useState("");
   const [loading, setLoading] = useState(isEdit);
-  const [categoryMap, setCategoryMap] = useState({}); // { "의류": 1, "도서 / 문구": 2, ... }
+  const [categoryMap, setCategoryMap] = useState({}); // { "의류": 1, "도서": 4, ... }
+  const [categoryNameToCode, setCategoryNameToCode] = useState({}); // { "도서": "books", ... }
 
   const stripRef = useRef(null);
 
@@ -72,13 +81,25 @@ export default function ProductPostPage() {
         
         // 카테고리 이름 -> ID 매핑 생성
         const map = {};
+        const nameToCode = {};
+        
         categories.forEach((cat) => {
           if (cat.name && cat.id) {
             map[cat.name] = cat.id;
+            
+            // 백엔드 카테고리 이름 -> 프론트 코드 매핑 생성
+            // 백엔드 이름을 기반으로 프론트 코드 찾기
+            const code = CATEGORY_CODE_MAP[cat.name];
+            if (code) {
+              nameToCode[cat.name] = code;
+            }
           }
         });
+        
         setCategoryMap(map);
+        setCategoryNameToCode(nameToCode);
         console.log("✅ 카테고리 매핑:", map);
+        console.log("✅ 카테고리 이름->코드 매핑:", nameToCode);
       } catch (e) {
         console.error("카테고리 목록 가져오기 오류:", e);
       }
@@ -230,8 +251,21 @@ export default function ProductPostPage() {
         // 🆕 신규 등록: POST /api/products/with-upload
         const formData = new FormData();
 
-        // ✅ 카테고리 코드(clothes, books 등) -> 한글 이름 -> ID 찾기
-        const categoryName = CATEGORY_NAME_MAP[category];
+        // ✅ 카테고리 코드(clothes, books 등) -> 백엔드 실제 이름 -> ID 찾기
+        // 먼저 CATEGORY_NAME_MAP으로 변환 시도
+        let categoryName = CATEGORY_NAME_MAP[category];
+        
+        // 백엔드에서 가져온 카테고리 목록에서 실제 이름 찾기
+        // categoryNameToCode를 역으로 사용하여 백엔드 이름 찾기
+        if (!categoryName || !categoryMap[categoryName]) {
+          // 백엔드 카테고리 목록에서 프론트 코드와 일치하는 이름 찾기
+          const foundName = Object.keys(categoryNameToCode).find(
+            (name) => categoryNameToCode[name] === category
+          );
+          if (foundName) {
+            categoryName = foundName;
+          }
+        }
         
         if (!categoryName) {
           console.error("카테고리 이름 변환 실패:", category);
