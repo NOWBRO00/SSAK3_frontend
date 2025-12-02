@@ -149,12 +149,19 @@ export default function MyPage() {
   const filteredItems = useMemo(
     () => baseList
       .filter((item) => item && item.status === filterStatus)
-      .map((item) => ({
-        ...item,
-        price: item.price != null ? (typeof item.price === 'number' ? item.price : Number(item.price) || 0) : 0,
-        title: item.title || "",
-        category: item.category || "",
-      })),
+      .map((item) => {
+        const price = item.price;
+        const numPrice = price != null 
+          ? (typeof price === 'number' ? price : (isNaN(Number(price)) ? 0 : Number(price)))
+          : 0;
+        
+        return {
+          ...item,
+          price: numPrice,
+          title: item.title || "",
+          category: item.category || "",
+        };
+      }),
     [baseList, filterStatus]
   );
 
@@ -356,9 +363,12 @@ export default function MyPage() {
                     </div>
                     <div className="mypage-card-title">{item?.title || ""}</div>
                     <div className="mypage-card-price">
-                      {item?.price != null && typeof item.price === 'number' 
-                        ? item.price.toLocaleString() 
-                        : (item?.price != null ? String(item.price) : "0")} <span>원</span>
+                      {(() => {
+                        const price = item?.price;
+                        if (price == null) return "0";
+                        const numPrice = typeof price === 'number' ? price : Number(price);
+                        return isNaN(numPrice) ? "0" : numPrice.toLocaleString();
+                      })()} <span>원</span>
                     </div>
                   </div>
                 </div>
