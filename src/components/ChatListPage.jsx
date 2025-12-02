@@ -136,8 +136,20 @@ export default function ChatListPage() {
             <div className="chat-loading">채팅 목록을 불러오는 중이에요...</div>
           )}
 
-          <ul className="chat-list">
-            {chats.map((c) => {
+          {!loading && chats.length === 0 && (
+            <div className="chat-empty" style={{
+              padding: "40px 20px",
+              textAlign: "center",
+              color: "#999"
+            }}>
+              <p style={{ fontSize: "16px", marginBottom: "8px" }}>대화 목록이 없어요</p>
+              <p style={{ fontSize: "14px", color: "#bbb" }}>상품 상세에서 1:1 문의를 시작해보세요!</p>
+            </div>
+          )}
+
+          {chats.length > 0 && (
+            <ul className="chat-list">
+              {chats.map((c) => {
               const isRead = (c.unreadCount || 0) === 0;
 
               return (
@@ -179,7 +191,8 @@ export default function ChatListPage() {
                 </li>
               );
             })}
-          </ul>
+            </ul>
+          )}
         </main>
 
         {/* 하단 네비게이션 */}

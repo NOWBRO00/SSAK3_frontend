@@ -277,11 +277,14 @@ export default function ProductDetailPage() {
         }
       }
       
-      // 찜 추가 성공 시 페이지 새로고침 없이 목록 갱신을 위해 이벤트 발생
+      // 찜 추가/취소 성공 시 페이지 새로고침 없이 목록 갱신을 위해 이벤트 발생
       // (다른 페이지에서 찜 목록을 갱신할 수 있도록)
-      if (next) {
-        window.dispatchEvent(new CustomEvent('wishListUpdated'));
-      }
+      window.dispatchEvent(new CustomEvent('wishListUpdated'));
+      
+      // 찜 상태 변경 이벤트도 발생 (같은 페이지에서도 반영)
+      window.dispatchEvent(new CustomEvent('wishStatusChanged', { 
+        detail: { productId: p.id, isWish: next } 
+      }));
     } catch (e) {
       if (process.env.NODE_ENV === "development") {
         console.error("[찜 오류]:", e);
@@ -363,6 +366,60 @@ export default function ProductDetailPage() {
   const tempLevel =
     mannerTemp < 36 ? "low" : mannerTemp < 60 ? "mid" : "high";
 
+  // ====== 내 상품인지 확인 ======
+  const userId = getUserId();
+  const sellerId = p?.seller?.id;
+  const isMyProduct = userId && sellerId && (sellerId === userId || String(sellerId) === String(userId));
+
+  // ====== 상태 변경 ======
+  const [statusChanging, setStatusChanging] = useState(false);
+  const handleStatusChange = useCallback(async (newStatus) => {
+    if (!p || statusChanging) return;
+    
+    if (!window.confirm(`상품 상태를 "${newStatus === 'ON_SALE' ? '판매중' : newStatus === 'RESERVED' ? '예약중' : '판매완료'}"으로 변경하시겠어요?`)) {
+      return;
+    }
+
+    setStatusChanging(true);
+    try {
+      // PUT /api/products/{id} - status 포함
+      const res = await fetch(`${API_BASE}/api/products/${p.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          title: p.title,
+          description: p.description,
+          price: p.price,
+          status: newStatus,
+        }),
+      });
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(errorText || "상태 변경 실패");
+      }
+
+      const updated = await res.json();
+      // 상품 정보 업데이트
+      setP((prev) => ({
+        ...prev,
+        status: updated.status || newStatus,
+      }));
+      
+      alert("상품 상태가 변경되었습니다.");
+      // 상태 변경 이벤트 발생 (마이페이지 목록 갱신용)
+      window.dispatchEvent(new CustomEvent('productStatusUpdated'));
+    } catch (e) {
+      if (process.env.NODE_ENV === "development") {
+        console.error("[상태 변경 실패]:", e);
+      }
+      alert("상품 상태 변경 중 오류가 발생했습니다.");
+    } finally {
+      setStatusChanging(false);
+    }
+  }, [p, statusChanging]);
+
   // ====== 바텀시트: 수정 / 삭제 ======
   const handleEditPost = () => {
     if (!p) return;
@@ -377,15 +434,43 @@ export default function ProductDetailPage() {
     try {
       const res = await fetch(`${API_BASE}/api/products/${p.id}`, {
         method: "DELETE",
+        headers: { "Content-Type": "application/json" },
         credentials: "include",
       });
-      if (!res.ok) throw new Error("삭제 실패");
+      
+      if (process.env.NODE_ENV === "development") {
+        console.log("[삭제] 응답 상태:", res.status, res.statusText);
+      }
+      
+      if (!res.ok) {
+        let errorMessage = "삭제 실패";
+        try {
+          const errorText = await res.text();
+          if (errorText) {
+            try {
+              const errorJson = JSON.parse(errorText);
+              errorMessage = errorJson.message || errorMessage;
+            } catch {
+              errorMessage = errorText || errorMessage;
+            }
+          }
+        } catch {
+          // 에러 본문 읽기 실패 시 기본 메시지 사용
+        }
+        throw new Error(errorMessage);
+      }
+      
+      // 204 No Content 또는 200 OK 모두 성공으로 처리
       alert("상품이 삭제되었습니다.");
       setIsMenuOpen(false);
-      nav("/");
+      // 상품 삭제 이벤트 발생 (마이페이지 목록 갱신용)
+      window.dispatchEvent(new CustomEvent('productDeleted', { detail: { productId: p.id } }));
+      nav("/home");
     } catch (e) {
-      console.error(e);
-      alert("상품 삭제 중 오류가 발생했습니다.");
+      if (process.env.NODE_ENV === "development") {
+        console.error("[삭제 실패]:", e);
+      }
+      alert(e.message || "상품 삭제 중 오류가 발생했습니다.");
       setIsMenuOpen(false);
     }
   };
@@ -481,9 +566,11 @@ export default function ProductDetailPage() {
       <div className="ss-body">
         <div className="ss-meta">
           <div className="ss-cat">{p.category?.name || "기타"}</div>
-          <button className="ss-icon-btn" onClick={() => setIsMenuOpen(true)}>
-            <DotsIcon />
-          </button>
+          {isMyProduct && (
+            <button className="ss-icon-btn" onClick={() => setIsMenuOpen(true)}>
+              <DotsIcon />
+            </button>
+          )}
         </div>
 
         <h1 className="ss-title">{p.title}</h1>
@@ -559,17 +646,68 @@ export default function ProductDetailPage() {
       {isMenuOpen && (
         <div className="ss-sheet-backdrop" onClick={() => setIsMenuOpen(false)}>
           <div className="ss-sheet" onClick={(e) => e.stopPropagation()}>
-            <div className="ss-sheet__panel">
-              <button className="ss-sheet__btn" onClick={handleEditPost}>
-                글 수정
-              </button>
-              <button
-                className="ss-sheet__btn ss-sheet__btn--danger"
-                onClick={handleDeletePost}
-              >
-                상품 삭제하기
-              </button>
-            </div>
+            {isMyProduct ? (
+              <>
+                <div className="ss-sheet__panel">
+                  <div style={{ padding: "12px 16px", fontSize: "14px", color: "#666", borderBottom: "1px solid #eee" }}>
+                    상품 상태 변경
+                  </div>
+                  {p.status !== "ON_SALE" && (
+                    <button 
+                      className="ss-sheet__btn" 
+                      onClick={() => {
+                        handleStatusChange("ON_SALE");
+                        setIsMenuOpen(false);
+                      }}
+                      disabled={statusChanging}
+                    >
+                      판매중으로 변경
+                    </button>
+                  )}
+                  {p.status !== "RESERVED" && (
+                    <button 
+                      className="ss-sheet__btn" 
+                      onClick={() => {
+                        handleStatusChange("RESERVED");
+                        setIsMenuOpen(false);
+                      }}
+                      disabled={statusChanging}
+                    >
+                      예약중으로 변경
+                    </button>
+                  )}
+                  {p.status !== "SOLD_OUT" && (
+                    <button 
+                      className="ss-sheet__btn" 
+                      onClick={() => {
+                        handleStatusChange("SOLD_OUT");
+                        setIsMenuOpen(false);
+                      }}
+                      disabled={statusChanging}
+                    >
+                      판매완료로 변경
+                    </button>
+                  )}
+                </div>
+                <div className="ss-sheet__panel">
+                  <button className="ss-sheet__btn" onClick={handleEditPost}>
+                    글 수정
+                  </button>
+                  <button
+                    className="ss-sheet__btn ss-sheet__btn--danger"
+                    onClick={handleDeletePost}
+                  >
+                    상품 삭제하기
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="ss-sheet__panel">
+                <div style={{ padding: "12px 16px", fontSize: "14px", color: "#999", textAlign: "center" }}>
+                  내 상품이 아닙니다
+                </div>
+              </div>
+            )}
             <div className="ss-sheet__panel">
               <button
                 className="ss-sheet__btn"

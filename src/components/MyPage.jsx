@@ -64,10 +64,53 @@ export default function MyPage() {
 
   // ✅ 1) 내 상품 목록 (백엔드 API에서 가져오기)
   const [myItems, setMyItems] = useState([]);
+  const [loadingMyItems, setLoadingMyItems] = useState(true);
 
   // ✅ 2) 찜 목록: 명세서 기준 /api/likes/user/{userId}
   const [wishItems, setWishItems] = useState([]);
   const [loadingWish, setLoadingWish] = useState(true);
+
+  // ✅ 내 상품 목록 로드
+  useEffect(() => {
+    const loadMyItems = async () => {
+      setLoadingMyItems(true);
+      try {
+        const userId = getUserId();
+        if (!userId) {
+          throw new Error("사용자 ID를 찾을 수 없습니다.");
+        }
+        // GET /api/products/seller/{sellerId}
+        const res = await fetch(`${API_BASE}/api/products/seller/${userId}`, {
+          credentials: "include",
+        });
+        if (!res.ok) throw new Error("내 상품 목록 조회 실패");
+
+        const rawList = await res.json();
+        
+        const mapped = (Array.isArray(rawList) ? rawList : []).map((raw) => ({
+          id: raw.id,
+          title: raw.title || "",
+          price: raw.price != null ? Number(raw.price) : 0,
+          img: buildImageUrl(raw.imageUrls?.[0] || ""),
+          category: raw.categoryName || raw.category?.name || "",
+          status: raw.status || "ON_SALE",
+          wished: !!raw.isWishlisted,
+        }));
+
+        setMyItems(mapped);
+      } catch (e) {
+        // 백엔드 실패 시 빈 배열로 표시
+        setMyItems([]);
+        if (process.env.NODE_ENV === "development") {
+          console.error("[내 상품 목록 조회 실패]:", e);
+        }
+      } finally {
+        setLoadingMyItems(false);
+      }
+    };
+
+    loadMyItems();
+  }, []);
 
   useEffect(() => {
     const loadWish = async () => {
@@ -120,8 +163,77 @@ export default function MyPage() {
     };
     
     window.addEventListener('wishListUpdated', handleWishListUpdate);
+    
+    // 상품 상태 변경 이벤트 리스너 (내 상품 목록 갱신)
+    const handleProductStatusUpdate = () => {
+      // 내 상품 목록 다시 로드
+      const loadMyItems = async () => {
+        try {
+          const userId = getUserId();
+          if (!userId) return;
+          const res = await fetch(`${API_BASE}/api/products/seller/${userId}`, {
+            credentials: "include",
+          });
+          if (!res.ok) return;
+          const rawList = await res.json();
+          const mapped = (Array.isArray(rawList) ? rawList : []).map((raw) => ({
+            id: raw.id,
+            title: raw.title || "",
+            price: raw.price != null ? Number(raw.price) : 0,
+            img: buildImageUrl(raw.imageUrls?.[0] || ""),
+            category: raw.categoryName || raw.category?.name || "",
+            status: raw.status || "ON_SALE",
+            wished: !!raw.isWishlisted,
+          }));
+          setMyItems(mapped);
+        } catch (e) {
+          if (process.env.NODE_ENV === "development") {
+            console.error("[내 상품 목록 갱신 실패]:", e);
+          }
+        }
+      };
+      loadMyItems();
+    };
+    
+    window.addEventListener('productStatusUpdated', handleProductStatusUpdate);
+    
+    // 상품 삭제 이벤트 리스너
+    const handleProductDeleted = () => {
+      // 내 상품 목록 다시 로드
+      const loadMyItems = async () => {
+        try {
+          const userId = getUserId();
+          if (!userId) return;
+          const res = await fetch(`${API_BASE}/api/products/seller/${userId}`, {
+            credentials: "include",
+          });
+          if (!res.ok) return;
+          const rawList = await res.json();
+          const mapped = (Array.isArray(rawList) ? rawList : []).map((raw) => ({
+            id: raw.id,
+            title: raw.title || "",
+            price: raw.price != null ? Number(raw.price) : 0,
+            img: buildImageUrl(raw.imageUrls?.[0] || ""),
+            category: raw.categoryName || raw.category?.name || "",
+            status: raw.status || "ON_SALE",
+            wished: !!raw.isWishlisted,
+          }));
+          setMyItems(mapped);
+        } catch (e) {
+          if (process.env.NODE_ENV === "development") {
+            console.error("[내 상품 목록 갱신 실패]:", e);
+          }
+        }
+      };
+      loadMyItems();
+    };
+    
+    window.addEventListener('productDeleted', handleProductDeleted);
+    
     return () => {
       window.removeEventListener('wishListUpdated', handleWishListUpdate);
+      window.removeEventListener('productStatusUpdated', handleProductStatusUpdate);
+      window.removeEventListener('productDeleted', handleProductDeleted);
     };
   }, []);
 
