@@ -78,19 +78,19 @@ export default function ChatRoomPage() {
   const pollingIntervalRef = useRef(null);
 
   // ✅ 채팅방 정보 로드
-  useEffect(() => {
-    const loadRoomInfo = async () => {
-      if (!roomId || roomId === "temp") {
-        setLoadingRoom(false);
-        return;
-      }
+  const loadRoomInfo = useCallback(async () => {
+    if (!roomId || roomId === "temp") {
+      setLoadingRoom(false);
+      return;
+    }
 
-      try {
-        // 1) 채팅방 정보 가져오기
-        // 백엔드 명세: GET /api/chatrooms/{chatRoomId} 또는 GET /api/chatrooms/rooms/{chatRoomId}
-        const res = await fetch(`${API_BASE}/api/chatrooms/${roomId}`, {
-          credentials: "include",
-        });
+    setLoadingRoom(true);
+    try {
+      // 1) 채팅방 정보 가져오기
+      // 백엔드 명세: GET /api/chatrooms/{chatRoomId} 또는 GET /api/chatrooms/rooms/{chatRoomId}
+      const res = await fetch(`${API_BASE}/api/chatrooms/${roomId}`, {
+        credentials: "include",
+      });
 
         if (!res.ok) {
           throw new Error("채팅방 정보 조회 실패");
@@ -162,10 +162,12 @@ export default function ChatRoomPage() {
       } finally {
         setLoadingRoom(false);
       }
-    };
-
-    loadRoomInfo();
   }, [roomId]);
+
+  // ✅ 채팅방 정보 로드 실행
+  useEffect(() => {
+    loadRoomInfo();
+  }, [loadRoomInfo]);
 
   // ✅ 메시지 목록 로드
   const loadMessages = useCallback(async () => {
