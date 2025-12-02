@@ -131,6 +131,10 @@ export default function KakaoCallbackPage() {
           // 백엔드 로그를 보면: "구매자 조회 성공: id=1, kakaoId=4474375438"
           // 즉, 백엔드가 DB PK와 카카오 ID를 모두 제공함
           
+          // 백엔드 응답 구조 확인:
+          // 백엔드 로그: "구매자 조회 성공: id=1, kakaoId=4474375438"
+          // 즉, 백엔드가 DB PK(id=1)와 카카오 ID(kakaoId=4474375438)를 모두 제공함
+          
           // 백엔드가 명시적으로 kakaoId를 제공하는지 확인
           const hasKakaoId = profile.kakaoId !== undefined && profile.kakaoId !== null;
           
@@ -139,18 +143,41 @@ export default function KakaoCallbackPage() {
           // - 또는 profile.kakaoId가 명시적으로 있는 경우
           const isDbPk = hasKakaoId || (profile.id && profile.id < 1000000); // DB PK는 보통 작은 숫자
           
+          // DB PK와 카카오 ID 분리
+          let dbPk = null;
+          let kakaoId = null;
+          
+          if (hasKakaoId) {
+            // 백엔드가 명시적으로 kakaoId를 제공하는 경우
+            dbPk = profile.id; // id는 DB PK
+            kakaoId = profile.kakaoId; // kakaoId는 카카오 ID
+          } else if (profile.id && profile.id < 1000000) {
+            // id가 작은 숫자면 DB PK로 간주
+            dbPk = profile.id;
+            kakaoId = null; // kakaoId는 알 수 없음
+          } else {
+            // id가 큰 숫자면 카카오 ID로 간주 (하위 호환)
+            // 이 경우 백엔드에서 DB PK를 가져와야 함
+            kakaoId = profile.id;
+            dbPk = null; // DB PK는 백엔드에서 가져와야 함
+          }
+          
           const profileToSave = {
-            id: isDbPk ? profile.id : (profile.kakaoId || profile.id), // DB PK (User.id) - API 호출 시 사용
-            kakaoId: hasKakaoId ? profile.kakaoId : (isDbPk ? null : profile.id), // 카카오 ID (참고용)
+            id: dbPk || kakaoId, // DB PK가 있으면 사용, 없으면 카카오 ID (하위 호환)
+            kakaoId: kakaoId || dbPk, // 카카오 ID가 있으면 사용, 없으면 id 사용 (하위 호환)
             nickname: profile.nickname,
             email: profile.email,
             profileImageUrl: profile.profileImageUrl || profile.profileImage,
             thumbnailImageUrl: profile.thumbnailImageUrl || profile.thumbnailImage,
           };
           
-          // kakaoId가 없으면 id를 kakaoId로 사용 (하위 호환)
-          if (!profileToSave.kakaoId && profileToSave.id) {
-            profileToSave.kakaoId = profileToSave.id;
+          // DB PK가 없으면 백엔드에서 가져오기 시도
+          if (!dbPk && kakaoId) {
+            // TODO: 백엔드에서 /api/users/kakao/{kakaoId}로 DB PK 조회
+            // 현재는 일단 카카오 ID를 사용 (백엔드가 카카오 ID로도 처리 가능)
+            if (process.env.NODE_ENV === "development") {
+              console.warn("[카카오 로그인] DB PK를 찾을 수 없음. 카카오 ID 사용:", kakaoId);
+            }
           }
           
           localStorage.setItem("ssak3.profile", JSON.stringify(profileToSave));
