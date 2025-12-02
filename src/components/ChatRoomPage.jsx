@@ -396,6 +396,13 @@ export default function ChatRoomPage() {
           </button>
         </header>
 
+        {/* 로딩 중 */}
+        {(loadingRoom || loadingMessages) && (
+          <div style={{ padding: "40px 20px", textAlign: "center", color: "#999" }}>
+            <p>채팅방 정보를 불러오는 중...</p>
+          </div>
+        )}
+
         {/* 상품 카드 */}
         <section
           className="product-card"
