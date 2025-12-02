@@ -29,19 +29,8 @@ import { api } from "../lib/api";
 
 // Mock 데이터 제거됨
 
-/* 사용자 ID 가져오기 (카카오 로그인) */
-const getUserId = () => {
-  try {
-    const profileStr = localStorage.getItem("ssak3.profile");
-    if (profileStr) {
-      const profile = JSON.parse(profileStr);
-      return profile.id;
-    }
-  } catch (e) {
-    // 프로필 파싱 실패 (조용히 처리)
-  }
-  return null;
-};
+// ✅ 공통 인증 유틸리티 사용
+import { getUserId, getUserProfile } from "../utils/auth";
 
 /* ========================================================= */
 /* 메인 페이지 */
@@ -51,19 +40,8 @@ export default function MainPage() {
   const nav = useNavigate();
 
   // ✅ 로그인한 유저 이름 가져오기 (카카오 로그인)
-  const getUserName = () => {
-    try {
-      const profileStr = localStorage.getItem("ssak3.profile");
-      if (profileStr) {
-        const profile = JSON.parse(profileStr);
-        return profile.nickname || "사용자";
-      }
-    } catch (e) {
-      // 프로필 파싱 실패 (조용히 처리)
-    }
-    return "사용자";
-  };
-  const userName = getUserName();
+  const profile = getUserProfile();
+  const userName = profile?.nickname || "사용자";
 
   // ✅ 카테고리: CategoryPage와 동일한 코드 사용
   const categories = [

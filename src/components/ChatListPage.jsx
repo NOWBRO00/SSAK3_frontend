@@ -13,18 +13,8 @@ import { BASE_URL } from "../lib/api";
 const API_BASE = BASE_URL;
 
 // ✅ 사용자 ID 가져오기 (카카오 로그인)
-const getUserId = () => {
-  try {
-    const profileStr = localStorage.getItem("ssak3.profile");
-    if (profileStr) {
-      const profile = JSON.parse(profileStr);
-      return profile.id;
-    }
-  } catch (e) {
-    console.error("프로필 파싱 실패:", e);
-  }
-  return null;
-};
+// ✅ 공통 인증 유틸리티 사용
+import { getUserId } from "../utils/auth";
 
 // 🔹 fallback용 임시 채팅
 function formatKoreanDate(iso) {

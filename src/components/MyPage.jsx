@@ -30,18 +30,8 @@ import { buildImageUrl } from "../lib/products";
 const API_BASE = BASE_URL;
 
 // ✅ 사용자 ID 가져오기 (카카오 로그인)
-const getUserId = () => {
-  try {
-    const profileStr = localStorage.getItem("ssak3.profile");
-    if (profileStr) {
-      const profile = JSON.parse(profileStr);
-      return profile.id;
-    }
-  } catch (e) {
-    console.error("프로필 파싱 실패:", e);
-  }
-  return null;
-};
+// ✅ 공통 인증 유틸리티 사용
+import { getUserId, getUserProfile } from "../utils/auth";
 
 /** 한글 상태 → 내부 enum */
 const mapStatusFromKorean = (status) => {
@@ -346,7 +336,7 @@ export default function MyPage() {
                     </div>
                     <div className="mypage-card-title">{item.title}</div>
                     <div className="mypage-card-price">
-                      {item.price.toLocaleString()} <span>원</span>
+                      {item.price != null ? item.price.toLocaleString() : "0"} <span>원</span>
                     </div>
                   </div>
                 </div>

@@ -35,19 +35,8 @@ const CATEGORY_NAME_MAP = {
   "helper": "가구",  // 백엔드 실제 이름: "가구"
 };
 
-// ✅ 판매자 ID 가져오기 (카카오 로그인)
-const getSellerId = () => {
-  try {
-    const profileStr = localStorage.getItem("ssak3.profile");
-    if (profileStr) {
-      const profile = JSON.parse(profileStr);
-      return profile.id;
-    }
-  } catch (e) {
-    console.error("프로필 파싱 실패:", e);
-  }
-  return null;
-};
+// ✅ 공통 인증 유틸리티 사용
+import { getUserId as getSellerId } from "../utils/auth";
 
 export default function ProductPostPage() {
   const { id } = useParams(); // /product/:id/edit 인 경우 id 존재

@@ -35,19 +35,8 @@ import loaderImg from "../image/loader.png";
 // ====== 백엔드 연동용 기본 설정 ======
 const API_BASE = BASE_URL;
 
-// ✅ 사용자 ID 가져오기 (카카오 로그인)
-const getUserId = () => {
-  try {
-    const profileStr = localStorage.getItem("ssak3.profile");
-    if (profileStr) {
-      const profile = JSON.parse(profileStr);
-      return profile.id;
-    }
-  } catch (e) {
-    console.error("프로필 파싱 실패:", e);
-  }
-  return null;
-};
+// ✅ 공통 인증 유틸리티 사용
+import { getUserId } from "../utils/auth";
 
 
 const KRW = (n) =>
@@ -102,7 +91,11 @@ export default function ProductDetailPage() {
 
   // ====== 상품 상세 조회 (백엔드 + mock fallback) ======
   const load = useCallback(async () => {
-    if (!id) return;
+    if (!id || id === "undefined") {
+      setLoading(false);
+      setP(null);
+      return;
+    }
     setLoading(true);
 
     try {
@@ -262,14 +255,13 @@ export default function ProductDetailPage() {
       if (!userId) {
         throw new Error("사용자 ID를 찾을 수 없습니다.");
       }
-      const res = await fetch(`${API_BASE}/api/likes`, {
+      // API 명세서: POST/DELETE /api/likes?userId={userId}&productId={productId}
+      const url = `${API_BASE}/api/likes?userId=${userId}&productId=${p.id}`;
+      
+      const res = await fetch(url, {
         method: next ? "POST" : "DELETE",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({
-          userId: userId,
-          productId: p.id,
-        }),
       });
       if (!res.ok) throw new Error("찜 실패");
     } catch (e) {
