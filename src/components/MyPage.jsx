@@ -87,11 +87,16 @@ export default function MyPage() {
               }
               return; // 성공하면 여기서 종료
             }
+          } else {
+            // 400, 404 등 에러 응답은 조용히 다음 방법으로 넘어감
+            if (process.env.NODE_ENV === "development") {
+              console.log("[사용자 정보] /api/users/me 응답 실패:", resMe.status, "다른 방법 시도");
+            }
           }
         } catch (e) {
-          // /api/users/me 실패 시 다음 방법 시도
+          // 네트워크 에러 등 - 다음 방법 시도
           if (process.env.NODE_ENV === "development") {
-            console.log("[사용자 정보] /api/users/me 실패, 다른 방법 시도");
+            console.log("[사용자 정보] /api/users/me 실패, 다른 방법 시도:", e.message);
           }
         }
         
@@ -110,9 +115,17 @@ export default function MyPage() {
               }
               return;
             }
+          } else {
+            // 400, 404 등 에러 응답은 조용히 다음 방법으로 넘어감
+            if (process.env.NODE_ENV === "development") {
+              console.log("[사용자 정보] /api/users/{id} 응답 실패:", res.status, "다음 방법 시도");
+            }
           }
         } catch (e) {
-          // 다음 방법 시도
+          // 네트워크 에러 등 - 다음 방법 시도
+          if (process.env.NODE_ENV === "development") {
+            console.log("[사용자 정보] /api/users/{id} 실패, 다음 방법 시도:", e.message);
+          }
         }
         
         // 방법 3: 내 상품 목록에서 첫 번째 상품의 seller 정보 활용
