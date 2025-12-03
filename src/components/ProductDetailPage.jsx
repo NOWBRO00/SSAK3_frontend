@@ -386,8 +386,52 @@ export default function ProductDetailPage() {
         throw new Error("chat fail");
       }
       
-      const data = await res.json();
-      const roomId = data.roomId ?? data.id;
+      // 응답 본문이 비어있을 수 있으므로 먼저 텍스트로 읽기
+      const responseText = await res.text();
+      let data = null;
+      let roomId = null;
+      
+      if (responseText && responseText.trim()) {
+        try {
+          data = JSON.parse(responseText);
+          roomId = data.roomId ?? data.id ?? data.chatRoomId;
+          console.log("[채팅방 생성] 응답 데이터:", data);
+        } catch (parseError) {
+          console.warn("[채팅방 생성] JSON 파싱 실패:", parseError, "원본:", responseText);
+        }
+      } else {
+        // 응답 본문이 비어있는 경우 (200 OK지만 본문 없음)
+        // 백엔드가 채팅방을 생성했지만 응답 본문을 반환하지 않은 경우
+        // 채팅방 목록에서 최신 채팅방을 찾아야 함
+        console.log("[채팅방 생성] 응답 본문이 비어있음, 채팅방 목록에서 찾기 시도");
+        
+        // 채팅방 목록 API를 호출하여 해당 productId와 buyerId/sellerId로 채팅방 찾기
+        try {
+          const chatListRes = await fetch(`${API_BASE}/api/chatrooms/user/${userId}`, {
+            credentials: "include",
+          });
+          
+          if (chatListRes.ok) {
+            const chatList = await chatListRes.json();
+            // 현재 productId와 일치하는 채팅방 찾기
+            const foundRoom = Array.isArray(chatList) 
+              ? chatList.find(room => 
+                  (room.productId === p.id || room.product?.id === p.id) &&
+                  ((room.buyerId === userId || room.buyer?.id === userId) ||
+                   (room.sellerId === userId || room.seller?.id === userId))
+                )
+              : null;
+            
+            if (foundRoom) {
+              roomId = foundRoom.id || foundRoom.roomId || foundRoom.chatRoomId;
+              data = foundRoom;
+              console.log("[채팅방 생성] 채팅방 목록에서 찾음:", { roomId, data });
+            }
+          }
+        } catch (listError) {
+          console.warn("[채팅방 생성] 채팅방 목록 조회 실패:", listError);
+        }
+      }
       
       // 채팅방 생성 응답 데이터를 sessionStorage에 저장 (ChatRoomPage에서 사용)
       if (roomId && data) {
@@ -406,6 +450,8 @@ export default function ProductDetailPage() {
       if (roomId) {
         nav(`/chat/${roomId}`);
       } else {
+        // roomId를 찾지 못한 경우 채팅 목록으로 이동
+        console.warn("[채팅방 생성] roomId를 찾을 수 없음, 채팅 목록으로 이동");
         nav("/chat");
       }
     } catch (e) {
