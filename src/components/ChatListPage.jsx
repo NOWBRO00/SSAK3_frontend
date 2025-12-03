@@ -104,9 +104,7 @@ export default function ChatListPage() {
         // 현재 사용자가 buyer인지 seller인지 확인
         // DB PK와 카카오 ID 모두 비교
         const buyerBackendId = raw.buyerId || raw.buyer?.id;
-        const sellerBackendId = raw.sellerId || raw.seller?.id;
         const buyerKakaoId = raw.buyer?.kakaoId;
-        const sellerKakaoId = raw.seller?.kakaoId;
         
         const isBuyer = currentUserId && (
           String(buyerBackendId) === String(currentUserId) ||

@@ -197,17 +197,21 @@ export default function MyPage() {
         setSellCount(mapped.length); // 판매 수 업데이트
         
         // 내 상품 목록에서 사용자 온도 정보도 확인 (없으면 기본값 유지)
-        if (mapped.length > 0 && temperature === 36.5) {
-          // 온도가 아직 기본값이면 내 상품 목록 응답에서 확인
-          const firstProduct = rawList[0];
-          const sellerTemp = firstProduct.seller?.temperature || 
-                            firstProduct.seller?.mannerTemperature ||
-                            firstProduct.mannerTemperature;
-          
-          if (sellerTemp !== undefined && sellerTemp !== null) {
-            setTemperature(sellerTemp);
-            if (process.env.NODE_ENV === "development") {
-              console.log("[사용자 정보] 내 상품 목록에서 온도 업데이트:", sellerTemp);
+        // temperature가 기본값(36.5)이고 내 상품이 있으면 온도 정보 확인
+        if (mapped.length > 0) {
+          const currentTemp = temperature;
+          if (currentTemp === 36.5) {
+            // 온도가 아직 기본값이면 내 상품 목록 응답에서 확인
+            const firstProduct = rawList[0];
+            const sellerTemp = firstProduct.seller?.temperature || 
+                              firstProduct.seller?.mannerTemperature ||
+                              firstProduct.mannerTemperature;
+            
+            if (sellerTemp !== undefined && sellerTemp !== null) {
+              setTemperature(sellerTemp);
+              if (process.env.NODE_ENV === "development") {
+                console.log("[사용자 정보] 내 상품 목록에서 온도 업데이트:", sellerTemp);
+              }
             }
           }
         }
@@ -221,6 +225,7 @@ export default function MyPage() {
     };
 
     loadMyItems();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
