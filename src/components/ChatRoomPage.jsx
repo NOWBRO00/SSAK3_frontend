@@ -297,9 +297,52 @@ export default function ChatRoomPage() {
       } catch (parseError) {
         console.error("[메시지 목록] JSON 파싱 실패:", parseError);
         console.warn("[메시지 목록] 응답 텍스트 길이:", responseText.length);
-        console.warn("[메시지 목록] 응답 텍스트 일부:", responseText.substring(0, 500));
-        // JSON 파싱 실패 시 빈 배열로 처리
-        rawList = [];
+        
+        // JSON 파싱 실패 시 부분적으로 메시지 추출 시도
+        // 백엔드가 순환 참조로 인해 잘린 JSON을 반환하는 경우 대비
+        try {
+          // 응답이 배열로 시작하는지 확인
+          if (responseText.trim().startsWith('[')) {
+            // 첫 번째 완전한 메시지 객체만 찾기
+            // {"id":숫자 부터 시작해서 }] 까지 찾기
+            const firstMessageMatch = responseText.match(/\[\s*\{[^}]*"id"\s*:\s*(\d+)[^}]*"content"\s*:\s*"([^"]*)"[^}]*"senderId"\s*:\s*(\d+)[^}]*"createdAt"\s*:\s*"([^"]*)"[^}]*\}/);
+            
+            if (firstMessageMatch) {
+              // 첫 번째 메시지만 추출
+              rawList = [{
+                id: parseInt(firstMessageMatch[1], 10),
+                content: firstMessageMatch[2],
+                senderId: parseInt(firstMessageMatch[3], 10),
+                createdAt: firstMessageMatch[4],
+                read: false,
+              }];
+              console.log("[메시지 목록] 첫 번째 메시지 추출 성공");
+            } else {
+              // 더 간단한 패턴으로 시도: "id":숫자,"content":"텍스트" 패턴
+              const simplePattern = /"id"\s*:\s*(\d+)\s*,\s*"content"\s*:\s*"([^"]*)"\s*,\s*"senderId"\s*:\s*(\d+)\s*,\s*"createdAt"\s*:\s*"([^"]*)"/;
+              const simpleMatch = responseText.match(simplePattern);
+              
+              if (simpleMatch) {
+                rawList = [{
+                  id: parseInt(simpleMatch[1], 10),
+                  content: simpleMatch[2],
+                  senderId: parseInt(simpleMatch[3], 10),
+                  createdAt: simpleMatch[4],
+                  read: false,
+                }];
+                console.log("[메시지 목록] 간단한 패턴으로 메시지 추출 성공");
+              } else {
+                console.warn("[메시지 목록] 메시지 추출 실패, 빈 배열 반환");
+                rawList = [];
+              }
+            }
+          } else {
+            rawList = [];
+          }
+        } catch (extractError) {
+          console.warn("[메시지 목록] 메시지 추출 실패:", extractError);
+          rawList = [];
+        }
       }
       console.log("[메시지 목록] 백엔드 응답:", rawList);
       console.log("[메시지 목록] 메시지 개수:", Array.isArray(rawList) ? rawList.length : 0);
