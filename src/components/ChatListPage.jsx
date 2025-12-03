@@ -8,7 +8,7 @@ import { useUnread } from "../state/UnreadContext";
 import BottomNav from "./BottomNav";
 
 // 🔹 공통 API BASE
-import { BASE_URL } from "../lib/api";
+import { BASE_URL, fetchWithAuth } from "../lib/api";
 // ✅ 공통 인증 유틸리티 사용
 import { getUserId, getKakaoId } from "../utils/auth";
 
@@ -60,8 +60,7 @@ export default function ChatListPage() {
       const url = `${API_BASE}/api/chatrooms/user/${userId}`;
       console.log("[ChatList] 채팅 목록 조회 시작:", url, { userId });
       
-      const res = await fetch(url, {
-        credentials: "include",
+      const res = await fetchWithAuth(url, {
       });
 
       console.log("[ChatList] 응답 상태:", res.status, res.statusText);

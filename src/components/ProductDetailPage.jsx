@@ -24,7 +24,7 @@ import backIcon from "../image/vector-33.png";
 import searchIcon from "../image/icon-search.png";
 
 // 🔌 공통 API BASE
-import { BASE_URL } from "../lib/api";
+import { BASE_URL, fetchWithAuth } from "../lib/api";
 // ✅ 공통 인증 유틸리티 사용
 import { getUserId } from "../utils/auth";
 
@@ -359,9 +359,8 @@ export default function ProductDetailPage() {
         console.log("[채팅방 생성] 요청 URL:", url);
       }
       
-      const res = await fetch(url, {
+      const res = await fetchWithAuth(url, {
         method: "POST",
-        credentials: "include",
         headers: { "Content-Type": "application/json" },
       });
       
@@ -420,8 +419,7 @@ export default function ProductDetailPage() {
         console.log("[채팅방 생성] 채팅방 목록에서 찾기 시도");
         
         try {
-          const chatListRes = await fetch(`${API_BASE}/api/chatrooms/user/${userId}`, {
-            credentials: "include",
+          const chatListRes = await fetchWithAuth(`${API_BASE}/api/chatrooms/user/${userId}`, {
           });
           
           if (chatListRes.ok) {

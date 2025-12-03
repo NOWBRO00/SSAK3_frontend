@@ -15,7 +15,7 @@ import sendIcon from "../image/icon_send.png";
 // import warningIcon from "../image/warning_mark.png"; // 파일이 없으므로 CSS로 대체
 
 // ✅ 백엔드 API 연동
-import { BASE_URL } from "../lib/api";
+import { BASE_URL, fetchWithAuth } from "../lib/api";
 import { getUserId, getKakaoId } from "../utils/auth";
 import { buildImageUrl } from "../lib/products";
 
@@ -95,9 +95,8 @@ export default function ChatRoomPage() {
       
       console.log("[채팅방 정보] 조회 시작:", url, { roomId });
 
-      const res = await fetch(url, {
+      const res = await fetchWithAuth(url, {
         method: "GET",
-        credentials: "include",
       });
 
       console.log("[채팅방 정보] 응답 상태:", res.status, res.statusText);
@@ -271,8 +270,7 @@ export default function ChatRoomPage() {
 
     try {
       // 백엔드 명세: GET /api/chatrooms/rooms/{chatRoomId}/messages
-      const res = await fetch(`${API_BASE}/api/chatrooms/rooms/${roomId}/messages`, {
-        credentials: "include",
+      const res = await fetchWithAuth(`${API_BASE}/api/chatrooms/rooms/${roomId}/messages`, {
       });
 
       // 400 에러는 채팅방이 없거나 메시지가 없는 경우이므로 빈 리스트로 처리
@@ -476,9 +474,8 @@ export default function ChatRoomPage() {
         isDbPk: senderId < 1000000
       });
 
-      const res = await fetch(url, {
+      const res = await fetchWithAuth(url, {
         method: "POST",
-        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           content: content,

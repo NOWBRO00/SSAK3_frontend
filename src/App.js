@@ -32,6 +32,23 @@ const ProtectedRoute = ({ children }) => {
 };
 
 function App() {
+  // ✅ 401 에러 발생 시 로그인 페이지로 리다이렉트
+  React.useEffect(() => {
+    const handleAuthExpired = () => {
+      // 이미 로그인 페이지가 아니면 리다이렉트
+      if (window.location.pathname !== "/login" && 
+          !window.location.pathname.includes("/auth/kakao/callback")) {
+        window.location.href = "/login";
+      }
+    };
+
+    window.addEventListener("authExpired", handleAuthExpired);
+    
+    return () => {
+      window.removeEventListener("authExpired", handleAuthExpired);
+    };
+  }, []);
+
   return (
     <UnreadProvider>
       <BrowserRouter>
