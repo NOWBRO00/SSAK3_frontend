@@ -393,26 +393,50 @@ export default function ProductDetailPage() {
       
       if (responseText && responseText.trim()) {
         try {
+          // JSON 파싱 시도
           data = JSON.parse(responseText);
           roomId = data.roomId ?? data.id ?? data.chatRoomId;
           console.log("[채팅방 생성] 응답 데이터:", data);
         } catch (parseError) {
-          console.warn("[채팅방 생성] JSON 파싱 실패:", parseError, "원본:", responseText);
+          console.warn("[채팅방 생성] JSON 파싱 실패:", parseError);
+          // JSON 파싱 실패 시 응답 텍스트에서 최소한의 정보 추출 시도
+          // 예: "id":2 같은 패턴 찾기
+          const idMatch = responseText.match(/"id"\s*:\s*(\d+)/);
+          if (idMatch) {
+            roomId = parseInt(idMatch[1], 10);
+            console.log("[채팅방 생성] 응답 텍스트에서 roomId 추출:", roomId);
+          } else {
+            // JSON 파싱 실패하고 id도 찾을 수 없으면 채팅방 목록에서 찾기
+            console.log("[채팅방 생성] JSON 파싱 실패 및 id 추출 실패, 채팅방 목록에서 찾기 시도");
+            // 아래 else 블록의 로직으로 이동
+          }
         }
-      } else {
-        // 응답 본문이 비어있는 경우 (200 OK지만 본문 없음)
-        // 백엔드가 채팅방을 생성했지만 응답 본문을 반환하지 않은 경우
-        // 채팅방 목록에서 최신 채팅방을 찾아야 함
-        console.log("[채팅방 생성] 응답 본문이 비어있음, 채팅방 목록에서 찾기 시도");
-        
+      }
+      
+      // roomId를 찾지 못한 경우 채팅방 목록에서 찾기
+      if (!roomId) {
+        // 응답 본문이 비어있거나 JSON 파싱 실패한 경우
         // 채팅방 목록 API를 호출하여 해당 productId와 buyerId/sellerId로 채팅방 찾기
+        console.log("[채팅방 생성] 채팅방 목록에서 찾기 시도");
+        
         try {
           const chatListRes = await fetch(`${API_BASE}/api/chatrooms/user/${userId}`, {
             credentials: "include",
           });
           
           if (chatListRes.ok) {
-            const chatList = await chatListRes.json();
+            // 안전하게 JSON 파싱
+            const chatListText = await chatListRes.text();
+            let chatList = null;
+            
+            try {
+              chatList = JSON.parse(chatListText);
+            } catch (parseError) {
+              console.warn("[채팅방 생성] 채팅 목록 JSON 파싱 실패:", parseError);
+              // JSON 파싱 실패 시 빈 배열로 처리
+              chatList = [];
+            }
+            
             // 현재 productId와 일치하는 채팅방 찾기
             const foundRoom = Array.isArray(chatList) 
               ? chatList.find(room => 
@@ -425,7 +449,7 @@ export default function ProductDetailPage() {
             if (foundRoom) {
               roomId = foundRoom.id || foundRoom.roomId || foundRoom.chatRoomId;
               data = foundRoom;
-              console.log("[채팅방 생성] 채팅방 목록에서 찾음:", { roomId, data });
+              console.log("[채팅방 생성] 채팅방 목록에서 찾음:", { roomId });
             }
           }
         } catch (listError) {

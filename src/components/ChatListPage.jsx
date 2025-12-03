@@ -82,7 +82,18 @@ export default function ChatListPage() {
         throw new Error(`채팅 목록 조회 실패: ${res.status}`);
       }
 
-      const rawList = await res.json();
+      // 안전하게 JSON 파싱 (응답이 너무 크거나 순환 참조가 있을 수 있음)
+      const responseText = await res.text();
+      let rawList = [];
+      
+      try {
+        rawList = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error("[ChatList] JSON 파싱 실패:", parseError);
+        console.warn("[ChatList] 응답 텍스트 길이:", responseText.length);
+        // JSON 파싱 실패 시 빈 배열로 처리
+        rawList = [];
+      }
       console.log("[ChatList] 채팅 목록 조회 성공:", rawList?.length || 0, "개");
       const currentUserId = getUserId(); // DB PK
       const currentUserKakaoId = getKakaoId(); // 카카오 ID
