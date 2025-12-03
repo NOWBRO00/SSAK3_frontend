@@ -174,10 +174,20 @@ export default function ChatListPage() {
       }, 500);
     };
     
+    // 채팅방 삭제/나가기 이벤트 리스너
+    const handleChatroomDeleted = (event) => {
+      const deletedRoomId = event.detail?.roomId;
+      console.log("[ChatList] chatroomDeleted 이벤트 수신, 목록 갱신:", deletedRoomId);
+      // 즉시 목록 갱신 (채팅방이 목록에서 제거됨)
+      loadChats();
+    };
+    
     window.addEventListener('chatroomCreated', handleChatroomCreated);
+    window.addEventListener('chatroomDeleted', handleChatroomDeleted);
     
     return () => {
       window.removeEventListener('chatroomCreated', handleChatroomCreated);
+      window.removeEventListener('chatroomDeleted', handleChatroomDeleted);
     };
   }, [loadChats]);
   

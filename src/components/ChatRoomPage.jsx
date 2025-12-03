@@ -657,9 +657,78 @@ export default function ChatRoomPage() {
     setMenuOpen(false);
     if (!window.confirm("이 채팅방을 나가시겠어요?")) return;
 
-    // 나중에 DELETE /api/chatrooms/{id} 같은 API 붙이면 여기서 호출
-    alert("채팅방을 나갔습니다.");
-    nav("/chat");
+    try {
+      const userId = getUserId(); // DB PK
+      if (!userId) {
+        alert("로그인이 필요합니다.");
+        nav("/login");
+        return;
+      }
+
+      // 백엔드 명세: DELETE /api/chatrooms/rooms/{chatRoomId}?userId={userId}
+      const url = `${API_BASE}/api/chatrooms/rooms/${roomId}?userId=${userId}`;
+      
+      console.log("[채팅방 나가기] 요청:", url, { roomId, userId });
+
+      const res = await fetchWithAuth(url, {
+        method: "DELETE",
+      });
+
+      // 204 No Content: 채팅방 삭제 성공
+      if (res.status === 204) {
+        console.log("[채팅방 나가기] 성공 (204 No Content)");
+        
+        // 채팅방 나가기 성공 시 이벤트 발생 (채팅 목록 갱신)
+        window.dispatchEvent(new CustomEvent('chatroomDeleted', { 
+          detail: { roomId } 
+        }));
+        
+        alert("채팅방을 나갔습니다.");
+        nav("/chat");
+        return;
+      }
+
+      // 400 Bad Request: 권한 없음 또는 잘못된 요청
+      if (res.status === 400) {
+        const errorText = await res.text();
+        let errorMessage = "채팅방을 나갈 권한이 없습니다.";
+        
+        try {
+          const errorJson = JSON.parse(errorText);
+          errorMessage = errorJson.message || errorMessage;
+        } catch {
+          if (errorText) {
+            errorMessage = errorText;
+          }
+        }
+        
+        console.error("[채팅방 나가기] 권한 없음 (400):", errorMessage);
+        alert(errorMessage);
+        return;
+      }
+
+      // 404는 이미 삭제된 경우로 간주하고 성공 처리
+      if (res.status === 404) {
+        console.log("[채팅방 나가기] 채팅방이 이미 삭제됨 (404)");
+        
+        // 이미 삭제된 경우에도 목록 갱신
+        window.dispatchEvent(new CustomEvent('chatroomDeleted', { 
+          detail: { roomId } 
+        }));
+        
+        alert("채팅방을 나갔습니다.");
+        nav("/chat");
+        return;
+      }
+
+      // 기타 에러
+      const errorText = await res.text();
+      console.error("[채팅방 나가기] 실패:", res.status, errorText);
+      alert("채팅방 나가기에 실패했습니다.");
+    } catch (e) {
+      console.error("[채팅방 나가기] 오류:", e);
+      alert("채팅방 나가기에 실패했습니다. 잠시 후 다시 시도해주세요.");
+    }
   };
 
   return (
