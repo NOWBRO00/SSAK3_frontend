@@ -123,15 +123,37 @@ export default function ChatRoomPage() {
         throw new Error(`채팅방 정보 조회 실패: ${res.status}`);
       }
 
-      const data = await res.json();
+      // 안전하게 JSON 파싱 (백엔드가 잘못된 JSON을 반환할 수 있음)
+      const responseText = await res.text();
+      let data = null;
+      
+      try {
+        data = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error("[채팅방 정보] JSON 파싱 실패:", parseError);
+        console.warn("[채팅방 정보] 응답 텍스트 길이:", responseText.length);
+        console.warn("[채팅방 정보] 응답 텍스트 일부:", responseText.substring(0, 500));
+        // JSON 파싱 실패 시 기본값 설정
+        throw new Error("채팅방 정보를 파싱할 수 없습니다.");
+      }
+      
       const userId = getUserId(); // DB PK
       const userKakaoId = getKakaoId(); // 카카오 ID
+      
+      // 프로필 안전하게 파싱
+      let profile = {};
+      try {
+        const profileText = localStorage.getItem("ssak3.profile") || "{}";
+        profile = JSON.parse(profileText);
+      } catch (e) {
+        console.warn("[채팅방 정보] 프로필 파싱 실패:", e);
+      }
       
       console.log("[채팅방 정보] 조회 성공:", data);
       console.log("[채팅방 정보] 현재 사용자:", { 
         userId, 
         userKakaoId,
-        profile: JSON.parse(localStorage.getItem("ssak3.profile") || "{}")
+        profile: profile
       });
 
         // 백엔드 응답 구조:
@@ -266,7 +288,19 @@ export default function ChatRoomPage() {
         throw new Error("메시지 목록 조회 실패");
       }
 
-      const rawList = await res.json();
+      // 안전하게 JSON 파싱 (백엔드가 잘못된 JSON을 반환할 수 있음)
+      const responseText = await res.text();
+      let rawList = [];
+      
+      try {
+        rawList = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error("[메시지 목록] JSON 파싱 실패:", parseError);
+        console.warn("[메시지 목록] 응답 텍스트 길이:", responseText.length);
+        console.warn("[메시지 목록] 응답 텍스트 일부:", responseText.substring(0, 500));
+        // JSON 파싱 실패 시 빈 배열로 처리
+        rawList = [];
+      }
       console.log("[메시지 목록] 백엔드 응답:", rawList);
       console.log("[메시지 목록] 메시지 개수:", Array.isArray(rawList) ? rawList.length : 0);
       
@@ -429,9 +463,8 @@ export default function ChatRoomPage() {
         throw new Error(errorMessage);
       }
 
-      // 응답 본문 확인
+      // 응답 본문 확인 (안전하게 파싱)
       const responseText = await res.text();
-      console.log("[메시지 전송] 응답 본문 (raw):", responseText);
       console.log("[메시지 전송] 응답 본문 길이:", responseText?.length);
       
       let data = null;
@@ -441,8 +474,10 @@ export default function ChatRoomPage() {
           console.log("[메시지 전송] 응답 데이터 (parsed):", data);
           console.log("[메시지 전송] 메시지 ID:", data?.id || data?.messageId);
         } catch (parseError) {
-          console.warn("[메시지 전송] JSON 파싱 실패:", parseError, "원본:", responseText);
+          console.warn("[메시지 전송] JSON 파싱 실패:", parseError);
+          console.warn("[메시지 전송] 응답 텍스트 일부:", responseText.substring(0, 500));
           // 빈 응답이어도 성공으로 처리 (204 No Content와 유사)
+          data = null;
         }
       } else {
         console.log("[메시지 전송] 빈 응답 (성공으로 처리)");
