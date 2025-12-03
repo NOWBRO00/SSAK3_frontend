@@ -295,6 +295,16 @@ export default function ProductPostPage() {
           }
         });
 
+        // 디버깅: FormData 내용 확인
+        console.log("[상품 등록] FormData 전송 예정:", {
+          title: title.trim(),
+          price: numericPrice,
+          description: details.trim(),
+          categoryId,
+          sellerId,
+          imagesCount: images.filter((item) => item.file).length,
+        });
+
         // FormData 전송
         // ⚠ Render + QUIC(HTTP/3) 환경에서 net::ERR_QUIC_PROTOCOL_ERROR 회피
         //  - cache: "no-store" + Connection: "keep-alive"로 HTTP/1.1 강제
@@ -311,7 +321,23 @@ export default function ProductPostPage() {
         const text = await res.text();
 
         if (!res.ok) {
-          throw new Error("상품 등록 실패");
+          // 에러 응답 본문 로그 출력
+          console.error("[상품 등록 실패] 응답 상태:", res.status, res.statusText);
+          console.error("[상품 등록 실패] 응답 본문:", text);
+          
+          // 에러 메시지 파싱 시도
+          let errorMessage = "상품 등록 실패";
+          try {
+            const errorJson = JSON.parse(text);
+            errorMessage = errorJson.message || errorMessage;
+          } catch {
+            // JSON 파싱 실패 시 원본 텍스트 사용
+            if (text) {
+              errorMessage = text;
+            }
+          }
+          
+          throw new Error(errorMessage);
         }
 
         let created;
@@ -331,12 +357,9 @@ export default function ProductPostPage() {
         }
       }
     } catch (err) {
-      console.error(err);
-      alert(
-        isEdit
-          ? "상품 수정 중 오류가 발생했습니다."
-          : "상품 등록 중 오류가 발생했습니다."
-      );
+      console.error("[상품 등록/수정 오류]:", err);
+      const errorMessage = err.message || (isEdit ? "상품 수정 중 오류가 발생했습니다." : "상품 등록 중 오류가 발생했습니다.");
+      alert(errorMessage);
     }
   };
 

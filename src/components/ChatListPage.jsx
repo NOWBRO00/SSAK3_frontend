@@ -10,7 +10,7 @@ import BottomNav from "./BottomNav";
 // 🔹 공통 API BASE
 import { BASE_URL } from "../lib/api";
 // ✅ 공통 인증 유틸리티 사용
-import { getUserId } from "../utils/auth";
+import { getUserId, getKakaoId } from "../utils/auth";
 
 const API_BASE = BASE_URL;
 
@@ -44,24 +44,48 @@ export default function ChatListPage() {
   const [chats, setChats] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // ✅ 채팅 목록 로드 (백엔드 + mock fallback)
+  // ✅ 채팅 목록 로드 (백엔드 API만 사용, 더미 데이터 없음)
   const loadChats = useCallback(async () => {
     setLoading(true);
     try {
-      // ✅ 실제로는 "사용자별 채팅방 목록" API에 맞춰서 URL만 바꾸면 됨
-      // 예: GET /api/chatrooms/user/{userId}
+      // ✅ 실제 백엔드 API: GET /api/chatrooms/user/{userId}
       const userId = getUserId();
       if (!userId) {
-        throw new Error("사용자 ID를 찾을 수 없습니다.");
+        console.error("[ChatList] 사용자 ID를 찾을 수 없습니다.");
+        setChats([]);
+        setLoading(false);
+        return;
       }
-      const res = await fetch(`${API_BASE}/api/chatrooms/user/${userId}`, {
+      
+      const url = `${API_BASE}/api/chatrooms/user/${userId}`;
+      console.log("[ChatList] 채팅 목록 조회 시작:", url, { userId });
+      
+      const res = await fetch(url, {
         credentials: "include",
       });
 
-      if (!res.ok) throw new Error("채팅 목록 조회 실패");
+      console.log("[ChatList] 응답 상태:", res.status, res.statusText);
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error("[ChatList] 채팅 목록 조회 실패:", res.status, errorText);
+        console.error("[ChatList] 요청 URL:", url);
+        
+        // 500 에러는 백엔드 문제이므로 빈 배열로 처리 (앱이 크래시되지 않도록)
+        if (res.status === 500) {
+          console.warn("[ChatList] 백엔드 500 에러 발생, 빈 목록으로 처리");
+          setChats([]);
+          setLoading(false);
+          return;
+        }
+        
+        throw new Error(`채팅 목록 조회 실패: ${res.status}`);
+      }
 
       const rawList = await res.json();
-      const currentUserId = getUserId(); // 상위 스코프의 userId와 구분
+      console.log("[ChatList] 채팅 목록 조회 성공:", rawList?.length || 0, "개");
+      const currentUserId = getUserId(); // DB PK
+      const currentUserKakaoId = getKakaoId(); // 카카오 ID
 
       // 백엔드 응답 구조:
       // [
@@ -78,9 +102,15 @@ export default function ChatListPage() {
       // ]
       const mapped = rawList.map((raw) => {
         // 현재 사용자가 buyer인지 seller인지 확인
+        // DB PK와 카카오 ID 모두 비교
+        const buyerBackendId = raw.buyerId || raw.buyer?.id;
+        const sellerBackendId = raw.sellerId || raw.seller?.id;
+        const buyerKakaoId = raw.buyer?.kakaoId;
+        const sellerKakaoId = raw.seller?.kakaoId;
+        
         const isBuyer = currentUserId && (
-          String(raw.buyerId) === String(currentUserId) ||
-          String(raw.buyer?.kakaoId) === String(currentUserId)
+          String(buyerBackendId) === String(currentUserId) ||
+          (currentUserKakaoId && String(buyerKakaoId) === String(currentUserKakaoId))
         );
         
         // 상대방 정보 (현재 사용자가 buyer면 seller, seller면 buyer)
@@ -109,13 +139,11 @@ export default function ChatListPage() {
       });
 
       setChats(mapped || []);
+      console.log("[ChatList] 매핑된 채팅 목록:", mapped?.length || 0, "개");
     } catch (e) {
       // 백엔드 실패 시 빈 배열로 표시
+      console.error("[ChatList] 채팅 목록 로드 실패:", e);
       setChats([]);
-      // 에러 로그는 개발 환경에서만
-      if (process.env.NODE_ENV === "development") {
-        console.error("[ChatList] 백엔드 실패:", e);
-      }
     } finally {
       setLoading(false);
     }
@@ -126,13 +154,31 @@ export default function ChatListPage() {
     
     // 채팅방 생성 이벤트 리스너
     const handleChatroomCreated = () => {
-      loadChats();
+      console.log("[ChatList] chatroomCreated 이벤트 수신, 목록 갱신");
+      // 약간의 지연을 주어 백엔드에 반영될 시간 확보
+      setTimeout(() => {
+        loadChats();
+      }, 500);
     };
     
     window.addEventListener('chatroomCreated', handleChatroomCreated);
     
     return () => {
       window.removeEventListener('chatroomCreated', handleChatroomCreated);
+    };
+  }, [loadChats]);
+  
+  // 페이지 포커스 시 목록 갱신 (사용자가 채팅방에서 돌아왔을 때)
+  useEffect(() => {
+    const handleFocus = () => {
+      console.log("[ChatList] 페이지 포커스, 목록 갱신");
+      loadChats();
+    };
+    
+    window.addEventListener('focus', handleFocus);
+    
+    return () => {
+      window.removeEventListener('focus', handleFocus);
     };
   }, [loadChats]);
 
@@ -175,6 +221,9 @@ export default function ChatListPage() {
             }}>
               <p style={{ fontSize: "16px", marginBottom: "8px" }}>대화 목록이 없어요</p>
               <p style={{ fontSize: "14px", color: "#bbb" }}>상품 상세에서 1:1 문의를 시작해보세요!</p>
+              <p style={{ fontSize: "12px", color: "#ccc", marginTop: "8px" }}>
+                (백엔드 오류가 발생한 경우 잠시 후 다시 시도해주세요)
+              </p>
             </div>
           )}
 

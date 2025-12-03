@@ -389,8 +389,19 @@ export default function ProductDetailPage() {
       const data = await res.json();
       const roomId = data.roomId ?? data.id;
       
+      // 채팅방 생성 응답 데이터를 sessionStorage에 저장 (ChatRoomPage에서 사용)
+      if (roomId && data) {
+        sessionStorage.setItem(`chatroom_${roomId}`, JSON.stringify(data));
+        console.log("[채팅방 생성] 응답 데이터 저장:", { roomId, data });
+      }
+      
       // 채팅방 생성 성공 시 채팅 목록 갱신 이벤트 발생
-      window.dispatchEvent(new CustomEvent('chatroomCreated'));
+      // roomId를 detail에 포함하여 더 구체적인 정보 전달
+      window.dispatchEvent(new CustomEvent('chatroomCreated', { 
+        detail: { roomId, data } 
+      }));
+      
+      console.log("[채팅방 생성] 이벤트 발생:", { roomId, data });
       
       if (roomId) {
         nav(`/chat/${roomId}`);

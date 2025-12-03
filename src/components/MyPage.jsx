@@ -65,37 +65,87 @@ export default function MyPage() {
   // ✅ 1) 내 상품 목록 (백엔드 API에서 가져오기)
   const [myItems, setMyItems] = useState([]);
 
-  // 사용자 정보 로드
+  // 사용자 정보 로드 (온도 등)
   useEffect(() => {
     const loadUserInfo = async () => {
       try {
         const userId = getUserId();
         if (!userId) return;
         
-        // GET /api/users/{id} - 사용자 정보 조회
-        // 백엔드가 카카오 ID를 지원하지 않을 수 있으므로 404 에러는 무시
-        const res = await fetch(`${API_BASE}/api/users/${userId}`, {
-          credentials: "include",
-        });
+        // 방법 1: /api/users/me (현재 로그인한 사용자 정보)
+        try {
+          const resMe = await fetch(`${API_BASE}/api/users/me`, {
+            credentials: "include",
+          });
+          
+          if (resMe.ok) {
+            const userData = await resMe.json();
+            if (userData.temperature !== undefined) {
+              setTemperature(userData.temperature);
+              if (process.env.NODE_ENV === "development") {
+                console.log("[사용자 정보] /api/users/me에서 온도 가져옴:", userData.temperature);
+              }
+              return; // 성공하면 여기서 종료
+            }
+          }
+        } catch (e) {
+          // /api/users/me 실패 시 다음 방법 시도
+          if (process.env.NODE_ENV === "development") {
+            console.log("[사용자 정보] /api/users/me 실패, 다른 방법 시도");
+          }
+        }
         
-        if (res.ok) {
-          const userData = await res.json();
-          if (userData.temperature !== undefined) {
-            setTemperature(userData.temperature);
+        // 방법 2: /api/users/{kakaoId} (카카오 ID로 조회)
+        try {
+          const res = await fetch(`${API_BASE}/api/users/${userId}`, {
+            credentials: "include",
+          });
+          
+          if (res.ok) {
+            const userData = await res.json();
+            if (userData.temperature !== undefined) {
+              setTemperature(userData.temperature);
+              if (process.env.NODE_ENV === "development") {
+                console.log("[사용자 정보] /api/users/{id}에서 온도 가져옴:", userData.temperature);
+              }
+              return;
+            }
           }
-          // 판매 수는 내 상품 목록 길이로 계산
-          // 또는 백엔드에서 제공하는 필드가 있다면 사용
-        } else if (res.status === 404) {
-          // 404 에러는 백엔드가 카카오 ID로 사용자 조회를 지원하지 않는 경우
-          // 기본값 유지 (온도는 기본값 36.5)
-          if (process.env.NODE_ENV === "development") {
-            console.log("[사용자 정보] 404 - 카카오 ID로 사용자 조회 불가, 기본값 사용");
+        } catch (e) {
+          // 다음 방법 시도
+        }
+        
+        // 방법 3: 내 상품 목록에서 첫 번째 상품의 seller 정보 활용
+        try {
+          const res = await fetch(`${API_BASE}/api/products/seller/${userId}`, {
+            credentials: "include",
+          });
+          
+          if (res.ok) {
+            const products = await res.json();
+            if (Array.isArray(products) && products.length > 0) {
+              // 첫 번째 상품의 seller 정보에서 온도 확인
+              const firstProduct = products[0];
+              const sellerTemp = firstProduct.seller?.temperature || 
+                                firstProduct.seller?.mannerTemperature ||
+                                firstProduct.mannerTemperature;
+              
+              if (sellerTemp !== undefined) {
+                setTemperature(sellerTemp);
+                if (process.env.NODE_ENV === "development") {
+                  console.log("[사용자 정보] 내 상품 목록에서 온도 가져옴:", sellerTemp);
+                }
+                return;
+              }
+            }
           }
-        } else {
-          // 다른 에러는 로그만 남기고 기본값 유지
-          if (process.env.NODE_ENV === "development") {
-            console.error("[사용자 정보 조회 실패]:", res.status, res.statusText);
-          }
+        } catch (e) {
+          // 모든 방법 실패 시 기본값 유지
+        }
+        
+        // 모든 방법 실패 시 기본값 유지
+        if (process.env.NODE_ENV === "development") {
+          console.log("[사용자 정보] 모든 방법 실패, 기본 온도 사용:", 36.5);
         }
       } catch (e) {
         // 네트워크 에러 등 - 기본값 유지
@@ -144,6 +194,23 @@ export default function MyPage() {
         }));
 
         setMyItems(mapped);
+        setSellCount(mapped.length); // 판매 수 업데이트
+        
+        // 내 상품 목록에서 사용자 온도 정보도 확인 (없으면 기본값 유지)
+        if (mapped.length > 0 && temperature === 36.5) {
+          // 온도가 아직 기본값이면 내 상품 목록 응답에서 확인
+          const firstProduct = rawList[0];
+          const sellerTemp = firstProduct.seller?.temperature || 
+                            firstProduct.seller?.mannerTemperature ||
+                            firstProduct.mannerTemperature;
+          
+          if (sellerTemp !== undefined && sellerTemp !== null) {
+            setTemperature(sellerTemp);
+            if (process.env.NODE_ENV === "development") {
+              console.log("[사용자 정보] 내 상품 목록에서 온도 업데이트:", sellerTemp);
+            }
+          }
+        }
       } catch (e) {
         // 백엔드 실패 시 빈 배열로 표시
         setMyItems([]);

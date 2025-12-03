@@ -16,7 +16,7 @@ import sendIcon from "../image/icon_send.png";
 
 // ✅ 백엔드 API 연동
 import { BASE_URL } from "../lib/api";
-import { getUserId } from "../utils/auth";
+import { getUserId, getKakaoId } from "../utils/auth";
 import { buildImageUrl } from "../lib/products";
 
 const API_BASE = BASE_URL;
@@ -63,6 +63,7 @@ export default function ChatRoomPage() {
     },
   });
   const [loadingRoom, setLoadingRoom] = useState(true);
+  const [roomLoaded, setRoomLoaded] = useState(false); // 채팅방 정보 로드 완료 여부
 
   // ✅ 메시지 목록 - 백엔드에서 가져오기
   const [messages, setMessages] = useState([]);
@@ -89,20 +90,13 @@ export default function ChatRoomPage() {
 
     setLoadingRoom(true);
     try {
-      // 1) 채팅방 정보 가져오기
-      // 백엔드 명세 확인 필요: GET /api/chatrooms/{id} 또는 GET /api/chatrooms/rooms/{id}
-      // 채팅방 생성 응답에서 받은 roomId를 사용하여 조회
-      // 일단 여러 패턴 시도
-      let url = `${API_BASE}/api/chatrooms/${roomId}`;
+      // ✅ 백엔드 API: GET /api/chatrooms/rooms/{chatRoomId}
+      const url = `${API_BASE}/api/chatrooms/rooms/${roomId}`;
       
-      // 백엔드가 /api/chatrooms/{id}를 지원하지 않으면 /api/chatrooms/rooms/{id} 시도
-      // (메시지 전송 API와 동일한 패턴)
-      // 하지만 먼저 기본 패턴 시도
-      
-      // 프로덕션에서도 로그 확인 가능하도록
       console.log("[채팅방 정보] 조회 시작:", url, { roomId });
-      
+
       const res = await fetch(url, {
+        method: "GET",
         credentials: "include",
       });
 
@@ -110,38 +104,82 @@ export default function ChatRoomPage() {
 
       if (!res.ok) {
         const errorText = await res.text();
-        console.error("[채팅방 정보] 조회 실패:", res.status, errorText);
+        console.warn("[채팅방 정보] 조회 실패:", res.status, errorText);
+        
+        // 400 에러는 채팅방이 없는 경우이므로 빈 상태로 처리
+        if (res.status === 400 || res.status === 404) {
+          console.log("[채팅방 정보] 채팅방이 존재하지 않음, 빈 상태로 처리");
+          setRoomMeta({
+            roomId,
+            peer: { id: null, nickname: "알 수 없음" },
+            product: { id: null, title: "", price: 0, thumbUrl: "" },
+          });
+          setRoomLoaded(true); // 로드 완료로 표시 (채팅방이 없어도)
+          setLoadingRoom(false);
+          return; // 에러를 throw하지 않고 종료
+        }
+        
+        // 400/404가 아닌 다른 에러는 throw
         throw new Error(`채팅방 정보 조회 실패: ${res.status}`);
       }
 
       const data = await res.json();
-      const userId = getUserId();
+      const userId = getUserId(); // DB PK
+      const userKakaoId = getKakaoId(); // 카카오 ID
       
       console.log("[채팅방 정보] 조회 성공:", data);
-      console.log("[채팅방 정보] 현재 사용자 ID:", userId);
+      console.log("[채팅방 정보] 현재 사용자:", { 
+        userId, 
+        userKakaoId,
+        profile: JSON.parse(localStorage.getItem("ssak3.profile") || "{}")
+      });
 
         // 백엔드 응답 구조:
-        // { id, buyerId, sellerId, productId, buyer: {id, kakaoId, nickname, ...}, seller: {...}, product: {...} }
+        // { id, buyerId, sellerId, productId, buyer: {id: DB_PK, kakaoId: 카카오ID, nickname, ...}, seller: {...}, product: {...} }
         
         // 상대방 정보 찾기 (seller 또는 buyer 중 현재 사용자가 아닌 사람)
-        const sellerId = data.sellerId || data.seller?.id;
-        const buyerId = data.buyerId || data.buyer?.id;
+        const sellerBackendId = data.sellerId || data.seller?.id; // DB PK
+        const buyerBackendId = data.buyerId || data.buyer?.id; // DB PK
         const sellerKakaoId = data.seller?.kakaoId;
         const buyerKakaoId = data.buyer?.kakaoId;
         
         // 현재 사용자가 buyer인지 seller인지 확인
+        // DB PK와 카카오 ID 모두 비교
         const isBuyer = userId && (
-          String(buyerId) === String(userId) || 
-          String(buyerKakaoId) === String(userId) ||
-          String(data.buyer?.kakaoId) === String(userId)
+          String(buyerBackendId) === String(userId) || // DB PK 비교
+          (userKakaoId && String(buyerKakaoId) === String(userKakaoId)) // 카카오 ID 비교
         );
         
-        // sellerKakaoId도 사용 (디버깅용)
-        if (process.env.NODE_ENV === "development") {
-          console.log("[채팅방] 상대방 정보:", { sellerId, buyerId, sellerKakaoId, buyerKakaoId, isBuyer, data });
+        const isSeller = userId && (
+          String(sellerBackendId) === String(userId) || // DB PK 비교
+          (userKakaoId && String(sellerKakaoId) === String(userKakaoId)) // 카카오 ID 비교
+        );
+        
+        // 디버깅 로그 (프로덕션에서도 확인 가능)
+        console.log("[채팅방] 사용자 확인:", { 
+          userId, 
+          userKakaoId,
+          sellerBackendId, 
+          buyerBackendId, 
+          sellerKakaoId, 
+          buyerKakaoId, 
+          isBuyer, 
+          isSeller,
+          fullData: data 
+        });
+        
+        if (!isBuyer && !isSeller) {
+          console.warn("[채팅방] 현재 사용자가 buyer도 seller도 아님! 데이터 확인 필요:", {
+            userId,
+            userKakaoId,
+            buyerBackendId,
+            sellerBackendId,
+            buyerKakaoId,
+            sellerKakaoId
+          });
         }
         
-        const peerId = isBuyer ? sellerId : buyerId;
+        const peerId = isBuyer ? sellerBackendId : buyerBackendId;
         const peerNickname = isBuyer 
           ? (data.seller?.nickname || "판매자")
           : (data.buyer?.nickname || "구매자");
@@ -176,16 +214,16 @@ export default function ChatRoomPage() {
           },
           product: productInfo,
         });
+        setRoomLoaded(true); // 채팅방 정보 로드 완료
       } catch (e) {
-        if (process.env.NODE_ENV === "development") {
-          console.error("[채팅방 정보 조회 실패]:", e);
-        }
+        console.error("[채팅방 정보 조회 실패]:", e);
         // 에러 발생 시에도 로딩 상태 해제
         setRoomMeta({
           roomId,
           peer: { id: null, nickname: "오류" },
           product: { id: null, title: "", price: 0, thumbUrl: "" },
         });
+        setRoomLoaded(true); // 로드 완료로 표시 (에러여도)
       } finally {
         setLoadingRoom(false);
       }
@@ -196,10 +234,16 @@ export default function ChatRoomPage() {
     loadRoomInfo();
   }, [loadRoomInfo]);
 
-  // ✅ 메시지 목록 로드
+  // ✅ 메시지 목록 로드 (채팅방 정보 로드 완료 후에만 실행)
   const loadMessages = useCallback(async () => {
     if (!roomId || roomId === "temp") {
       setLoadingMessages(false);
+      return;
+    }
+
+    // 채팅방 정보가 로드되지 않았으면 대기
+    if (!roomLoaded) {
+      console.log("[메시지 목록] 채팅방 정보 로드 대기 중...");
       return;
     }
 
@@ -209,19 +253,34 @@ export default function ChatRoomPage() {
         credentials: "include",
       });
 
+      // 400 에러는 채팅방이 없거나 메시지가 없는 경우이므로 빈 리스트로 처리
+      if (res.status === 400 || res.status === 404) {
+        console.log("[메시지 목록] 채팅방이 없거나 메시지가 없음, 빈 리스트 반환");
+        setMessages([]);
+        setLoadingMessages(false);
+        return;
+      }
+
       if (!res.ok) {
+        // 400/404가 아닌 다른 에러만 throw
         throw new Error("메시지 목록 조회 실패");
       }
 
       const rawList = await res.json();
+      console.log("[메시지 목록] 백엔드 응답:", rawList);
+      console.log("[메시지 목록] 메시지 개수:", Array.isArray(rawList) ? rawList.length : 0);
+      
       const userId = getUserId();
+      const userKakaoId = getKakaoId();
 
       const mapped = (Array.isArray(rawList) ? rawList : []).map((raw) => {
         const senderId = raw.senderId || raw.sender?.id || raw.userId;
+        const senderKakaoId = raw.sender?.kakaoId || raw.senderKakaoId;
+        
+        // DB PK와 카카오 ID 모두 비교
         const isMe = userId && (
           String(senderId) === String(userId) ||
-          String(raw.senderKakaoId) === String(userId) ||
-          String(raw.userKakaoId) === String(userId)
+          (userKakaoId && String(senderKakaoId) === String(userKakaoId))
         );
 
         return {
@@ -238,32 +297,34 @@ export default function ChatRoomPage() {
         };
       });
 
+      console.log("[메시지 목록] 매핑된 메시지:", mapped.length, "개");
       setMessages(mapped);
     } catch (e) {
-      if (process.env.NODE_ENV === "development") {
-        console.error("[메시지 목록 조회 실패]:", e);
-      }
-      setMessages([]);
+      console.error("[메시지 목록 조회 실패]:", e);
+      setMessages([]); // 에러 발생 시 빈 리스트 반환
     } finally {
       setLoadingMessages(false);
     }
-  }, [roomId]);
+  }, [roomId, roomLoaded]);
 
-  // ✅ 초기 메시지 로드 및 폴링
+  // ✅ 초기 메시지 로드 및 폴링 (채팅방 정보 로드 완료 후)
   useEffect(() => {
-    loadMessages();
-
-    // 3초마다 새 메시지 확인 (폴링)
-    pollingIntervalRef.current = setInterval(() => {
+    // 채팅방 정보가 로드된 후에만 메시지 로드
+    if (roomLoaded) {
       loadMessages();
-    }, 3000);
 
-    return () => {
-      if (pollingIntervalRef.current) {
-        clearInterval(pollingIntervalRef.current);
-      }
-    };
-  }, [loadMessages]);
+      // 3초마다 새 메시지 확인 (폴링)
+      pollingIntervalRef.current = setInterval(() => {
+        loadMessages();
+      }, 3000);
+
+      return () => {
+        if (pollingIntervalRef.current) {
+          clearInterval(pollingIntervalRef.current);
+        }
+      };
+    }
+  }, [loadMessages, roomLoaded]);
 
   // 🔹 새 메시지 들어올 때마다 맨 아래로 스크롤
   useEffect(() => {
@@ -301,19 +362,42 @@ export default function ChatRoomPage() {
     setMessages((p) => [...p, optimistic]);
 
     try {
-      const userId = getUserId();
-      if (!userId) {
+      const userId = getUserId(); // DB PK
+      const userKakaoId = getKakaoId(); // 카카오 ID
+      
+      if (!userId && !userKakaoId) {
         throw new Error("로그인이 필요합니다.");
       }
 
       // 백엔드 명세: POST /api/chatrooms/rooms/{chatRoomId}/messages?senderId={senderId}
-      // RequestBody: { "content": "..." }
-      // roomId는 숫자여야 함 (Long 타입)
-      const url = `${API_BASE}/api/chatrooms/rooms/${roomId}/messages?senderId=${userId}`;
+      // 백엔드: @RequestParam Long senderId - DB PK (UserProfile.id)를 기대
+      // 채팅방 생성 시 buyerId도 Long 타입이므로 DB PK 사용
+      // 따라서 여기서도 DB PK 사용
+      const senderId = userId; // DB PK 사용
       
-      if (process.env.NODE_ENV === "development") {
-        console.log("[메시지 전송] 요청:", url, { content, roomId, userId });
+      if (!senderId) {
+        console.error("[메시지 전송] DB PK를 찾을 수 없음:", { userId, userKakaoId });
+        throw new Error("사용자 ID를 찾을 수 없습니다. 다시 로그인해주세요.");
       }
+      
+      // senderId가 DB PK인지 확인 (DB PK는 보통 작은 숫자, 카카오 ID는 큰 숫자)
+      if (senderId > 1000000) {
+        console.warn("[메시지 전송] senderId가 카카오 ID일 수 있음:", senderId);
+        // 카카오 ID인 경우 DB PK를 찾아야 함
+        // 하지만 일단 시도해보고 백엔드 에러 확인
+      }
+      
+      const url = `${API_BASE}/api/chatrooms/rooms/${roomId}/messages?senderId=${senderId}`;
+      
+      console.log("[메시지 전송] 요청:", url, { 
+        content, 
+        roomId, 
+        userId, 
+        userKakaoId,
+        senderId,
+        senderIdType: typeof senderId,
+        isDbPk: senderId < 1000000
+      });
 
       const res = await fetch(url, {
         method: "POST",
@@ -324,19 +408,56 @@ export default function ChatRoomPage() {
         }),
       });
 
+      console.log("[메시지 전송] 응답 상태:", res.status, res.statusText);
+
       if (!res.ok) {
-        throw new Error("메시지 전송 실패");
+        const errorText = await res.text();
+        console.error("[메시지 전송 실패] 응답 본문:", errorText);
+        console.error("[메시지 전송 실패] 요청 URL:", url);
+        
+        // 에러 메시지 파싱 시도
+        let errorMessage = "메시지 전송 실패";
+        try {
+          const errorJson = JSON.parse(errorText);
+          errorMessage = errorJson.message || errorMessage;
+        } catch {
+          if (errorText) {
+            errorMessage = errorText;
+          }
+        }
+        
+        throw new Error(errorMessage);
       }
 
-      const data = await res.json();
+      // 응답 본문 확인
+      const responseText = await res.text();
+      console.log("[메시지 전송] 응답 본문 (raw):", responseText);
+      console.log("[메시지 전송] 응답 본문 길이:", responseText?.length);
+      
+      let data = null;
+      if (responseText && responseText.trim()) {
+        try {
+          data = JSON.parse(responseText);
+          console.log("[메시지 전송] 응답 데이터 (parsed):", data);
+          console.log("[메시지 전송] 메시지 ID:", data?.id || data?.messageId);
+        } catch (parseError) {
+          console.warn("[메시지 전송] JSON 파싱 실패:", parseError, "원본:", responseText);
+          // 빈 응답이어도 성공으로 처리 (204 No Content와 유사)
+        }
+      } else {
+        console.log("[메시지 전송] 빈 응답 (성공으로 처리)");
+      }
       
       // 성공 시 optimistic 메시지를 실제 메시지로 교체
+      const messageId = data?.id || data?.messageId;
+      console.log("[메시지 전송] 최종 메시지 ID:", messageId || tempId);
+      
       setMessages((p) =>
         p.map((m) =>
           m.id === tempId
             ? {
                 ...m,
-                id: data.id || data.messageId || tempId,
+                id: messageId || tempId,
                 sendStatus: "sent",
               }
             : m
@@ -344,16 +465,17 @@ export default function ChatRoomPage() {
       );
 
       // 메시지 목록 새로고침 (백엔드에서 최신 상태 가져오기)
+      // 즉시 새로고침하여 전송된 메시지 확인
+      console.log("[메시지 전송] 메시지 목록 새로고침 예정");
       setTimeout(() => {
+        console.log("[메시지 전송] 메시지 목록 새로고침 실행");
         loadMessages();
-      }, 500);
+      }, 300);
     } catch (e) {
-      if (process.env.NODE_ENV === "development") {
-        console.error("[메시지 전송 실패]:", e);
-      }
+      console.error("[메시지 전송 오류]:", e);
       // 실패 시 optimistic 메시지 제거
       setMessages((p) => p.filter((m) => m.id !== tempId));
-      alert("메시지 전송에 실패했습니다.");
+      alert(`메시지 전송에 실패했습니다: ${e.message || "알 수 없는 오류"}`);
     }
   };
 
@@ -475,9 +597,15 @@ export default function ChatRoomPage() {
         </header>
 
         {/* 로딩 중 */}
-        {(loadingRoom || loadingMessages) && (
+        {loadingRoom && (
           <div style={{ padding: "40px 20px", textAlign: "center", color: "#999" }}>
             <p>채팅방 정보를 불러오는 중...</p>
+          </div>
+        )}
+        
+        {!loadingRoom && loadingMessages && (
+          <div style={{ padding: "40px 20px", textAlign: "center", color: "#999" }}>
+            <p>메시지를 불러오는 중...</p>
           </div>
         )}
 
@@ -504,6 +632,12 @@ export default function ChatRoomPage() {
 
         {/* 메시지 목록 */}
         <main className="room-main" ref={listRef}>
+          {!loadingRoom && !loadingMessages && messages.length === 0 && (
+            <div style={{ padding: "40px 20px", textAlign: "center", color: "#999" }}>
+              <p>대화 내역이 없습니다.</p>
+              <p style={{ fontSize: "14px", marginTop: "8px" }}>첫 메시지를 보내보세요!</p>
+            </div>
+          )}
           {rendered.map((row) =>
             row.type === "divider" ? (
               <div key={row.id} className="date-divider">
