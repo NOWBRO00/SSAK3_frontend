@@ -74,17 +74,19 @@ export default function SearchPage() {
         let searchSuccess = false;
         
         try {
+          // 백엔드 검색 API: GET /api/products/search?keyword={검색어}
+          // 제목(title) 또는 설명(description)에 키워드가 포함된 상품 검색
+          // 대소문자 구분 없음, 부분 일치 검색
           list = await api(
             `/api/products/search?keyword=${encodeURIComponent(q)}`
           );
           searchSuccess = true;
-          if (process.env.NODE_ENV === "development") {
-            console.log("[검색] /api/products/search 성공:", list?.length || 0, "개");
-          }
+          // ✅ 백엔드 검색 API 성공
+          console.log("[검색] 백엔드 검색 API 성공:", list?.length || 0, "개 결과");
         } catch (searchErr) {
-          // 500 에러 등 검색 API 실패 시 조용히 fallback으로 이동
+          // 백엔드 검색 API 실패 시 fallback으로 이동
           if (process.env.NODE_ENV === "development") {
-            console.warn("[검색] /api/products/search 실패:", searchErr.message);
+            console.warn("[검색] 백엔드 검색 API 실패:", searchErr.message);
             console.log("[검색] Fallback 방법 시도");
           }
         }
