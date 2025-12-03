@@ -128,6 +128,10 @@ export default function ChatRoomPage() {
       
       try {
         data = JSON.parse(responseText);
+        // ✅ 정상 JSON 파싱 성공 - 정규식 fallback 불필요
+        if (process.env.NODE_ENV === "development") {
+          console.log("[채팅방 정보] 정상 JSON 파싱 성공");
+        }
       } catch (parseError) {
         console.error("[채팅방 정보] JSON 파싱 실패:", parseError);
         console.warn("[채팅방 정보] 응답 텍스트 길이:", responseText.length);
@@ -292,9 +296,14 @@ export default function ChatRoomPage() {
       
       try {
         rawList = JSON.parse(responseText);
+        // ✅ 정상 JSON 파싱 성공 - 정규식 fallback 불필요
+        if (process.env.NODE_ENV === "development") {
+          console.log("[메시지 목록] 정상 JSON 파싱 성공:", rawList?.length || 0, "개 메시지");
+        }
       } catch (parseError) {
         console.error("[메시지 목록] JSON 파싱 실패:", parseError);
         console.warn("[메시지 목록] 응답 텍스트 길이:", responseText.length);
+        console.warn("[메시지 목록] 정규식 fallback 사용 (백엔드 순환 참조 문제 대비)");
         
         // JSON 파싱 실패 시 부분적으로 메시지 추출 시도
         // 백엔드가 순환 참조로 인해 잘린 JSON을 반환하는 경우 대비

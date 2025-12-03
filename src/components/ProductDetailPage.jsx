@@ -395,9 +395,14 @@ export default function ProductDetailPage() {
           // JSON 파싱 시도
           data = JSON.parse(responseText);
           roomId = data.roomId ?? data.id ?? data.chatRoomId;
+          // ✅ 정상 JSON 파싱 성공 - 정규식 fallback 불필요
+          if (process.env.NODE_ENV === "development") {
+            console.log("[채팅방 생성] 정상 JSON 파싱 성공, roomId:", roomId);
+          }
           console.log("[채팅방 생성] 응답 데이터:", data);
         } catch (parseError) {
           console.warn("[채팅방 생성] JSON 파싱 실패:", parseError);
+          console.warn("[채팅방 생성] 정규식 fallback 사용 (백엔드 순환 참조 문제 대비)");
           // JSON 파싱 실패 시 응답 텍스트에서 최소한의 정보 추출 시도
           // 예: "id":2 같은 패턴 찾기
           const idMatch = responseText.match(/"id"\s*:\s*(\d+)/);

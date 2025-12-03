@@ -87,9 +87,14 @@ export default function ChatListPage() {
       
       try {
         rawList = JSON.parse(responseText);
+        // ✅ 정상 JSON 파싱 성공 - 정규식 fallback 불필요
+        if (process.env.NODE_ENV === "development") {
+          console.log("[ChatList] 정상 JSON 파싱 성공:", rawList?.length || 0, "개 채팅방");
+        }
       } catch (parseError) {
         console.error("[ChatList] JSON 파싱 실패:", parseError);
         console.warn("[ChatList] 응답 텍스트 길이:", responseText.length);
+        console.warn("[ChatList] 빈 배열 반환 (백엔드 순환 참조 문제 대비)");
         // JSON 파싱 실패 시 빈 배열로 처리
         rawList = [];
       }
