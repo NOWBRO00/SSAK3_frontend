@@ -71,21 +71,42 @@ export default function SearchPage() {
       try {
         // 방법 1: GET /api/products/search?keyword={검색어} 시도
         let list = [];
+        let searchSuccess = false;
+        
         try {
           list = await api(
             `/api/products/search?keyword=${encodeURIComponent(q)}`
           );
-        } catch (searchErr) {
-          // 검색 전용 API가 없으면 전체 상품 목록에서 필터링
+          searchSuccess = true;
           if (process.env.NODE_ENV === "development") {
-            console.log("[검색] /api/products/search 실패, 전체 목록에서 필터링 시도");
+            console.log("[검색] /api/products/search 성공:", list?.length || 0, "개");
           }
-          
-          // 방법 2: GET /api/products?keyword={검색어} 시도
+        } catch (searchErr) {
+          // 500 에러 등 검색 API 실패 시 조용히 fallback으로 이동
+          if (process.env.NODE_ENV === "development") {
+            console.warn("[검색] /api/products/search 실패:", searchErr.message);
+            console.log("[검색] Fallback 방법 시도");
+          }
+        }
+        
+        // 방법 2: 검색 API 실패 시 GET /api/products?keyword={검색어} 시도
+        if (!searchSuccess) {
           try {
             list = await api(`/api/products?keyword=${encodeURIComponent(q)}`);
+            searchSuccess = true;
+            if (process.env.NODE_ENV === "development") {
+              console.log("[검색] /api/products?keyword= 성공:", list?.length || 0, "개");
+            }
           } catch (queryErr) {
-            // 방법 3: GET /api/products (전체 목록) 가져와서 프론트에서 필터링
+            if (process.env.NODE_ENV === "development") {
+              console.warn("[검색] /api/products?keyword= 실패:", queryErr.message);
+            }
+          }
+        }
+        
+        // 방법 3: 위 방법들이 모두 실패하면 GET /api/products (전체 목록) 가져와서 프론트에서 필터링
+        if (!searchSuccess) {
+          try {
             const allProducts = await api("/api/products");
             const lowerQ = q.toLowerCase();
             list = Array.isArray(allProducts) 
@@ -97,8 +118,11 @@ export default function SearchPage() {
               : [];
             
             if (process.env.NODE_ENV === "development") {
-              console.log("[검색] 전체 목록에서 필터링:", list.length, "개");
+              console.log("[검색] 전체 목록에서 필터링 성공:", list.length, "개");
             }
+          } catch (allErr) {
+            console.error("[검색] 모든 검색 방법 실패:", allErr);
+            list = []; // 최종 실패 시 빈 배열
           }
         }
 
