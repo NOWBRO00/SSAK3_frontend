@@ -33,6 +33,9 @@ import { getUserId } from "../utils/auth";
 // 🔹 로딩 이미지
 import loaderImg from "../image/loader.png";
 
+// 🔹 기본 프로필 이미지 (MyPage와 동일)
+import defaultProfile from "../image/profile-default.png";
+
 // ====== 백엔드 연동용 기본 설정 ======
 const API_BASE = BASE_URL;
 
@@ -45,9 +48,6 @@ const KRW = (n) =>
         maximumFractionDigits: 0,
       })
     : n;
-
-const DEFAULT_AVATAR_DATA =
-  "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'><circle cx='40' cy='40' r='40' fill='%23eeeeee'/><circle cx='40' cy='32' r='14' fill='%23cccccc'/><rect x='16' y='50' width='48' height='18' rx='9' fill='%23cccccc'/></svg>";
 
 const DEFAULT_MANNER_TEMP = 35;
 
@@ -758,7 +758,7 @@ export default function ProductDetailPage() {
         <div className="ss-seller">
           <img
             className="ss-avatar"
-            src={p.seller.profile_image_url || DEFAULT_AVATAR_DATA}
+            src={p.seller.profile_image_url || p.seller.profileImageUrl || p.seller.thumbnailImageUrl || defaultProfile}
             alt=""
           />
           <div className="ss-seller__info">
