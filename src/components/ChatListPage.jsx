@@ -191,6 +191,17 @@ export default function ChatListPage() {
     };
   }, [loadChats]);
   
+  // ✅ 새 채팅 메시지 감지를 위한 폴링 (5초마다 목록 갱신)
+  useEffect(() => {
+    const pollingInterval = setInterval(() => {
+      loadChats();
+    }, 5000); // 5초마다 채팅 목록 갱신하여 새 메시지 감지
+    
+    return () => {
+      clearInterval(pollingInterval);
+    };
+  }, [loadChats]);
+  
   // 페이지 포커스 시 목록 갱신 (사용자가 채팅방에서 돌아왔을 때)
   useEffect(() => {
     const handleFocus = () => {

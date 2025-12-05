@@ -95,16 +95,27 @@
 .meta { display: flex; gap: 6px; font-size: 10.5px; color: #a9a1a1; margin-top: 2px; }
 .meta .fail { color: #f72623; }
 
-/* 경고 배너 (고정) */
+/* 경고 배너 (고정) - 채팅을 가리지 않도록 축소 */
 .safe-banner {
   position: sticky;
   bottom: 130px;  /* 72(하단탭) + ~56(입력바) 여유 */
   background: #fff;
   border-top: 1px solid #ededed;
   color: #7b6e6e;
-  font-size: 12px;
-  padding: 10px 12px;
+  font-size: 10px;
+  padding: 6px 12px;
   z-index: 2;
+  max-height: 50px;
+  overflow: hidden;
+  line-height: 1.3;
+}
+.safe-banner .safe-top {
+  font-size: 10px;
+  margin-bottom: 2px;
+}
+.safe-banner .safe-bottom {
+  font-size: 9px;
+  color: #999;
 }
 
 /* 입력바 (고정) */

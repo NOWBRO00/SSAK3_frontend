@@ -808,19 +808,21 @@ export default function ChatRoomPage() {
           <div ref={bottomRef} />
         </main>
 
-        {/* 안전 배너 */}
+        {/* 안전 배너 - 채팅을 가리지 않도록 축소 */}
         <div className="safe-banner">
           <div className="safe-icon" style={{ 
-            width: '20px', 
-            height: '20px', 
+            width: '14px', 
+            height: '14px', 
             borderRadius: '50%', 
             backgroundColor: '#ff6b6b',
             display: 'inline-block',
             textAlign: 'center',
-            lineHeight: '20px',
+            lineHeight: '14px',
             color: 'white',
-            fontSize: '12px',
-            fontWeight: 'bold'
+            fontSize: '9px',
+            fontWeight: 'bold',
+            marginRight: '4px',
+            verticalAlign: 'middle'
           }}>!</div>
           <div className="safe-top">
             [중고 거래 채팅 시 외부 채널 유도 및 개인정보 요구 금지]
