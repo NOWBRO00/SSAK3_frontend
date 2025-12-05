@@ -805,7 +805,8 @@ export default function ChatRoomPage() {
               />
             )
           )}
-          <div ref={bottomRef} />
+          {/* 하단 여백: 안전 배너와 입력바 공간 확보 */}
+          <div ref={bottomRef} style={{ height: '100px' }} />
         </main>
 
         {/* 안전 배너 - 채팅을 가리지 않도록 축소 */}

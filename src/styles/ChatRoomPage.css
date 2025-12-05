@@ -63,7 +63,8 @@
 .room-main {
   overflow-y: auto;
   background: #fafafa;
-  padding: 10px 12px 16px;  /* 하단 padding-bottom은 인라인 스타일로 여유 추가 */
+  padding: 10px 12px 80px;  /* 하단 패딩 증가: 안전 배너 + 입력바 공간 확보 */
+  margin-bottom: 0;
 }
 .empty-hint { color:#9a8e88; font-size:13px; text-align:center; margin-top: 24px; }
 .date-divider {
