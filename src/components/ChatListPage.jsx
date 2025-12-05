@@ -182,12 +182,24 @@ export default function ChatListPage() {
       loadChats();
     };
     
+    // 채팅방 읽음 처리 이벤트 리스너 (unreadCount 업데이트)
+    const handleChatroomRead = (event) => {
+      const readRoomId = event.detail?.roomId;
+      console.log("[ChatList] chatroomRead 이벤트 수신, 목록 갱신:", readRoomId);
+      // 읽음 처리 후 unreadCount 업데이트를 위해 목록 갱신
+      setTimeout(() => {
+        loadChats();
+      }, 300); // 약간의 지연을 주어 백엔드에 반영될 시간 확보
+    };
+    
     window.addEventListener('chatroomCreated', handleChatroomCreated);
     window.addEventListener('chatroomDeleted', handleChatroomDeleted);
+    window.addEventListener('chatroomRead', handleChatroomRead);
     
     return () => {
       window.removeEventListener('chatroomCreated', handleChatroomCreated);
       window.removeEventListener('chatroomDeleted', handleChatroomDeleted);
+      window.removeEventListener('chatroomRead', handleChatroomRead);
     };
   }, [loadChats]);
   

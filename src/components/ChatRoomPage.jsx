@@ -259,6 +259,52 @@ export default function ChatRoomPage() {
     loadRoomInfo();
   }, [loadRoomInfo]);
 
+  // ✅ 채팅방 읽음 처리 API 호출
+  const markChatRoomAsRead = useCallback(async () => {
+    if (!roomId || roomId === "temp" || !roomLoaded) {
+      return; // 채팅방 정보가 로드되지 않았으면 실행하지 않음
+    }
+
+    try {
+      const userId = getUserId(); // DB PK
+      const userKakaoId = getKakaoId(); // 카카오 ID
+      
+      // userId가 없으면 실행하지 않음
+      if (!userId && !userKakaoId) {
+        console.log("[읽음 처리] 사용자 ID 없음, 건너뜀");
+        return;
+      }
+
+      // 백엔드 API: PUT /api/chatrooms/rooms/{chatRoomId}/read?userId={userId}
+      // 백엔드가 DB PK를 기대하므로 userId (DB PK) 사용
+      const readUserId = userId || userKakaoId; // DB PK 우선, 없으면 카카오 ID
+      
+      const url = `${API_BASE}/api/chatrooms/rooms/${roomId}/read?userId=${readUserId}`;
+      
+      console.log("[읽음 처리] 요청:", url, { roomId, userId, userKakaoId, readUserId });
+
+      const res = await fetchWithAuth(url, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      if (res.ok) {
+        console.log("[읽음 처리] 성공");
+        // 채팅방 목록 갱신을 위한 이벤트 발생 (ChatListPage에서 unreadCount 업데이트)
+        window.dispatchEvent(new CustomEvent('chatroomRead', { 
+          detail: { roomId } 
+        }));
+      } else {
+        const errorText = await res.text();
+        console.warn("[읽음 처리] 실패:", res.status, errorText);
+        // 읽음 처리 실패해도 채팅방은 정상적으로 표시되도록 함
+      }
+    } catch (e) {
+      console.error("[읽음 처리] 오류:", e);
+      // 읽음 처리 실패해도 채팅방은 정상적으로 표시되도록 함
+    }
+  }, [roomId, roomLoaded]);
+
   // ✅ 메시지 목록 로드 (채팅방 정보 로드 완료 후에만 실행)
   const loadMessages = useCallback(async () => {
     if (!roomId || roomId === "temp") {
@@ -378,6 +424,7 @@ export default function ChatRoomPage() {
           } : undefined,
           createdAt: raw.createdAt || raw.sentAt || new Date().toISOString(),
           sendStatus: "sent",
+          read: raw.isRead !== undefined ? raw.isRead : (isMe ? true : false), // 백엔드에서 isRead 필드 제공, 없으면 내 메시지는 읽음으로 처리
         };
       });
 
@@ -397,18 +444,25 @@ export default function ChatRoomPage() {
     if (roomLoaded) {
       loadMessages();
 
+      // 채팅방 진입 시 읽음 처리 (메시지 로드 후)
+      // 약간의 지연을 주어 메시지가 먼저 로드되도록 함
+      const readTimer = setTimeout(() => {
+        markChatRoomAsRead();
+      }, 500);
+
       // 3초마다 새 메시지 확인 (폴링)
       pollingIntervalRef.current = setInterval(() => {
         loadMessages();
       }, 3000);
 
       return () => {
+        clearTimeout(readTimer);
         if (pollingIntervalRef.current) {
           clearInterval(pollingIntervalRef.current);
         }
       };
     }
-  }, [loadMessages, roomLoaded]);
+  }, [loadMessages, roomLoaded, markChatRoomAsRead]);
 
   // 🔹 새 메시지 들어올 때마다 맨 아래로 스크롤
   useEffect(() => {
