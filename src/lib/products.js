@@ -68,22 +68,28 @@ export const getProduct = (id) => api(`/api/products/${id}`);
 
 /**
  * 상품 리스트 조회
- *  - categoryId, keyword, page, size 등 쿼리 파라미터 지원
+ *  - categoryId가 있으면 /api/products/category/{categoryId} 사용
+ *  - keyword가 있으면 /api/products/search?keyword={keyword} 사용
+ *  - 그 외에는 /api/products 사용
  */
 export const getProducts = (params = {}) => {
-  const searchParams = new URLSearchParams();
-
-  if (params.categoryId) searchParams.set("categoryId", params.categoryId);
-  if (params.keyword) searchParams.set("keyword", params.keyword);
-  if (params.page) searchParams.set("page", params.page);
-  if (params.size) searchParams.set("size", params.size);
-
-  const qs = searchParams.toString();
-  const url = `/api/products${qs ? `?${qs}` : ""}`;
+  // categoryId가 있으면 백엔드의 /api/products/category/{categoryId} 엔드포인트 사용
+  if (params.categoryId) {
+    const url = `/api/products/category/${params.categoryId}`;
+    console.log(`[getProducts] 카테고리별 조회:`, url, { categoryId: params.categoryId });
+    return api(url);
+  }
   
-  // 디버깅: API 호출 URL 로그
-  console.log(`[getProducts] API 호출:`, url, { params });
+  // keyword가 있으면 검색 API 사용
+  if (params.keyword) {
+    const url = `/api/products/search?keyword=${encodeURIComponent(params.keyword)}`;
+    console.log(`[getProducts] 키워드 검색:`, url, { keyword: params.keyword });
+    return api(url);
+  }
   
+  // 그 외에는 전체 상품 조회
+  const url = `/api/products`;
+  console.log(`[getProducts] 전체 상품 조회:`, url);
   return api(url);
 };
 
