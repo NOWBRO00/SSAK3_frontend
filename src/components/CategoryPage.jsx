@@ -52,6 +52,17 @@ const normalizeStatus = (status) => {
   return mapStatusFromKorean(status);
 };
 
+// 백엔드 카테고리 이름 -> 프론트 코드 매핑 (컴포넌트 외부로 이동)
+const BACKEND_CATEGORY_MAP = {
+  "의류": "clothes",
+  "도서": "books",
+  "도서 / 문구": "books",
+  "전자제품": "appliances",
+  "가전 / 주방": "appliances",
+  "가구": "helper",
+  "도우미 / 기타": "helper",
+};
+
 export default function CategoryPage() {
   const nav = useNavigate();
   const { name } = useParams();
@@ -83,17 +94,6 @@ export default function CategoryPage() {
   const [loading, setLoading] = useState(true);
   const [wishList, setWishList] = useState([]); // 찜 목록
   const [backendCategoryId, setBackendCategoryId] = useState(null); // 백엔드 실제 카테고리 ID
-
-  // 백엔드 카테고리 이름 -> 프론트 코드 매핑
-  const BACKEND_CATEGORY_MAP = {
-    "의류": "clothes",
-    "도서": "books",
-    "도서 / 문구": "books",
-    "전자제품": "appliances",
-    "가전 / 주방": "appliances",
-    "가구": "helper",
-    "도우미 / 기타": "helper",
-  };
 
   // 백엔드에서 카테고리 목록을 가져와서 실제 ID 찾기
   useEffect(() => {
