@@ -101,31 +101,40 @@ export default function CategoryPage() {
       try {
         const backendCategories = await getCategories();
         
+        console.log("[카테고리 페이지] 백엔드 카테고리 목록:", backendCategories);
+        
         // 프론트엔드 카테고리 코드에 해당하는 백엔드 카테고리 찾기
         const frontendCode = resolveCategoryFromParam(name).code;
+        console.log("[카테고리 페이지] 프론트엔드 카테고리 코드:", frontendCode);
         
         // 백엔드 카테고리 목록에서 매칭되는 카테고리 찾기
         const matchedCategory = backendCategories.find((cat) => {
           const backendName = cat.name || "";
           const mappedCode = BACKEND_CATEGORY_MAP[backendName];
+          console.log("[카테고리 페이지] 백엔드 카테고리 매칭 시도:", {
+            backendName,
+            mappedCode,
+            frontendCode,
+            match: mappedCode === frontendCode,
+          });
           return mappedCode === frontendCode;
         });
         
         if (matchedCategory && matchedCategory.id) {
           setBackendCategoryId(matchedCategory.id);
-          if (process.env.NODE_ENV === "development") {
-            console.log(`[카테고리 페이지] 백엔드 카테고리 ID 찾음:`, {
-              frontendCode,
-              backendName: matchedCategory.name,
-              backendId: matchedCategory.id,
-            });
-          }
+          console.log(`[카테고리 페이지] ✅ 백엔드 카테고리 ID 찾음:`, {
+            frontendCode,
+            backendName: matchedCategory.name,
+            backendId: matchedCategory.id,
+          });
         } else {
           // 매칭 실패 시 하드코딩된 ID 사용 (fallback)
+          console.warn(`[카테고리 페이지] ⚠️ 백엔드 카테고리 매칭 실패, 하드코딩된 ID 사용:`, {
+            frontendCode,
+            categoryId,
+            availableCategories: backendCategories.map(c => ({ name: c.name, id: c.id })),
+          });
           setBackendCategoryId(categoryId);
-          if (process.env.NODE_ENV === "development") {
-            console.warn(`[카테고리 페이지] 백엔드 카테고리 매칭 실패, 하드코딩된 ID 사용:`, categoryId);
-          }
         }
       } catch (e) {
         console.error("[카테고리 페이지] 백엔드 카테고리 목록 조회 실패:", e);
@@ -150,16 +159,21 @@ export default function CategoryPage() {
       // ✅ 핵심: 백엔드 실제 카테고리 ID 사용
       //    GET /api/products?categoryId={backendCategoryId}
       
-      if (process.env.NODE_ENV === "development") {
-        console.log(`[카테고리 페이지] 백엔드 카테고리 ID ${backendCategoryId}로 상품 조회 시작`);
-      }
-
+      console.log(`[카테고리 페이지] 🔍 백엔드 카테고리 ID ${backendCategoryId}로 상품 조회 시작`);
+      
       // getProducts 함수 사용 (products.js에서 제공)
       const rawList = await getProducts({ categoryId: backendCategoryId });
 
-      if (process.env.NODE_ENV === "development") {
-        console.log(`[카테고리 페이지] 상품 조회 성공:`, rawList?.length || 0, "개");
-      }
+      console.log(`[카테고리 페이지] ✅ 상품 조회 성공:`, {
+        categoryId: backendCategoryId,
+        count: rawList?.length || 0,
+        firstFewItems: rawList?.slice(0, 3).map(item => ({
+          id: item.id,
+          title: item.title,
+          categoryName: item.categoryName,
+          categoryId: item.categoryId,
+        })),
+      });
 
       // rawList가 배열이 아니면 빈 배열로 처리
       if (!Array.isArray(rawList)) {

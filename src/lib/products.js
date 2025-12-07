@@ -79,7 +79,12 @@ export const getProducts = (params = {}) => {
   if (params.size) searchParams.set("size", params.size);
 
   const qs = searchParams.toString();
-  return api(`/api/products${qs ? `?${qs}` : ""}`);
+  const url = `/api/products${qs ? `?${qs}` : ""}`;
+  
+  // 디버깅: API 호출 URL 로그
+  console.log(`[getProducts] API 호출:`, url, { params });
+  
+  return api(url);
 };
 
 /**
