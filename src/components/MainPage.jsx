@@ -25,7 +25,7 @@ import stickerSoldout from "../image/status-soldout.png";
 import BottomNav from "./BottomNav";
 
 // 🔹 공통 유틸
-import { buildImageUrl } from "../lib/products";
+import { buildImageUrl, getCategories, CATEGORY_INFO } from "../lib/products";
 import { api } from "../lib/api";
 
 // Mock 데이터 제거됨
@@ -37,6 +37,25 @@ import { getUserId, getUserProfile } from "../utils/auth";
 /* 메인 페이지 */
 /* ========================================================= */
 
+// 백엔드 카테고리 이름 -> 프론트 코드 매핑
+const BACKEND_CATEGORY_MAP = {
+  "의류": "clothes",
+  "도서": "books",
+  "도서 / 문구": "books",
+  "전자제품": "appliances",
+  "가전 / 주방": "appliances",
+  "가구": "helper",
+  "도우미 / 기타": "helper",
+};
+
+// 프론트 코드 -> 아이콘 매핑
+const CATEGORY_ICON_MAP = {
+  clothes: iconCloth,
+  books: iconBook,
+  appliances: iconKitchen,
+  helper: iconEtc,
+};
+
 export default function MainPage() {
   const nav = useNavigate();
 
@@ -44,13 +63,55 @@ export default function MainPage() {
   const profile = getUserProfile();
   const userName = profile?.nickname || "사용자";
 
-  // ✅ 카테고리: CategoryPage와 동일한 코드 사용
-  const categories = [
+  // ✅ 카테고리: 백엔드에서 동적으로 가져오기
+  const [categories, setCategories] = useState([
     { id: "books", label: "도서 / 문구", icon: iconBook },
     { id: "clothes", label: "의류", icon: iconCloth },
     { id: "appliances", label: "가전 / 주방", icon: iconKitchen },
     { id: "helper", label: "도우미 / 기타", icon: iconEtc },
-  ];
+  ]);
+
+  // 백엔드에서 카테고리 목록 가져오기
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const backendCategories = await getCategories();
+        
+        if (backendCategories.length > 0) {
+          // 백엔드 카테고리를 프론트엔드 형식으로 변환
+          const mappedCategories = backendCategories
+            .map((cat) => {
+              const backendName = cat.name || "";
+              const frontendCode = BACKEND_CATEGORY_MAP[backendName];
+              
+              if (frontendCode && CATEGORY_INFO[frontendCode]) {
+                return {
+                  id: frontendCode,
+                  label: CATEGORY_INFO[frontendCode].label,
+                  icon: CATEGORY_ICON_MAP[frontendCode],
+                  backendId: cat.id,
+                  backendName: backendName,
+                };
+              }
+              return null;
+            })
+            .filter(Boolean); // null 제거
+          
+          if (mappedCategories.length > 0) {
+            setCategories(mappedCategories);
+            if (process.env.NODE_ENV === "development") {
+              console.log("[메인 페이지] 카테고리 목록 로드 성공:", mappedCategories);
+            }
+          }
+        }
+      } catch (e) {
+        console.error("[메인 페이지] 카테고리 목록 로드 실패:", e);
+        // 실패 시 기본 카테고리 사용
+      }
+    };
+    
+    loadCategories();
+  }, []);
 
   // ✅ 추천 / 찜 목록
   const [recommended, setRecommended] = useState([]);

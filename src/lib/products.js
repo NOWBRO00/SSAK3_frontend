@@ -100,6 +100,20 @@ export function buildImageUrl(path) {
   return `${BASE_URL}${path.startsWith("/") ? path : `/${path}`}`;
 }
 
+/**
+ * 백엔드에서 카테고리 목록 가져오기
+ */
+export const getCategories = async () => {
+  try {
+    const categories = await api("/api/categories");
+    return Array.isArray(categories) ? categories : [];
+  } catch (e) {
+    console.error("[카테고리 목록] 조회 실패:", e);
+    return [];
+  }
+};
+
 // 필요하면 외부에서 BASE_URL도 재사용 가능하게 export
 export { BASE_URL };
+
 

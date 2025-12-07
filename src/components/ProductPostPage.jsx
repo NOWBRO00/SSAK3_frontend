@@ -51,6 +51,7 @@ export default function ProductPostPage() {
   const [loading, setLoading] = useState(isEdit);
   const [categoryMap, setCategoryMap] = useState({}); // { "의류": 1, "도서": 4, ... }
   const [categoryNameToCode, setCategoryNameToCode] = useState({}); // { "도서": "books", ... }
+  const [categoryOptions, setCategoryOptions] = useState([]); // 백엔드에서 가져온 카테고리 옵션
 
   const stripRef = useRef(null);
 
@@ -73,6 +74,8 @@ export default function ProductPostPage() {
         const map = {};
         const nameToCode = {};
         
+        const options = [];
+        
         categories.forEach((cat) => {
           if (cat.name && cat.id) {
             map[cat.name] = cat.id;
@@ -82,12 +85,21 @@ export default function ProductPostPage() {
             const code = CATEGORY_CODE_MAP[cat.name];
             if (code) {
               nameToCode[cat.name] = code;
+              
+              // 카테고리 옵션 추가 (프론트엔드 표시용)
+              options.push({
+                value: code,
+                label: CATEGORY_NAME_MAP[code] || cat.name, // 프론트엔드 표시 이름 또는 백엔드 이름
+                backendName: cat.name,
+                backendId: cat.id,
+              });
             }
           }
         });
         
         setCategoryMap(map);
         setCategoryNameToCode(nameToCode);
+        setCategoryOptions(options);
         // 카테고리 매핑 완료
       } catch (e) {
         console.error("카테고리 목록 가져오기 오류:", e);
@@ -489,10 +501,21 @@ export default function ProductPostPage() {
                   <option value="" disabled>
                     카테고리 선택
                   </option>
-                  <option value="clothes">의류</option>
-                  <option value="books">도서 / 문구</option>
-                  <option value="appliances">가전 / 주방</option>
-                  <option value="helper">도우미 / 기타</option>
+                  {categoryOptions.length > 0 ? (
+                    categoryOptions.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))
+                  ) : (
+                    // 백엔드에서 카테고리를 가져오지 못한 경우 기본 옵션 표시
+                    <>
+                      <option value="clothes">의류</option>
+                      <option value="books">도서 / 문구</option>
+                      <option value="appliances">가전 / 주방</option>
+                      <option value="helper">도우미 / 기타</option>
+                    </>
+                  )}
                 </select>
                 <span className="chevron" aria-hidden="true">
                   ▾
