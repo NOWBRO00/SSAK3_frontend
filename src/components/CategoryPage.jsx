@@ -18,7 +18,8 @@ import loaderImg from "../image/loader.png";
 // 🔹 공통 상품/카테고리 유틸
 //   - resolveCategoryFromParam: URL 파라미터 → { code, id, label }
 //   - buildImageUrl: /uploads/... → 절대 URL
-import { resolveCategoryFromParam, buildImageUrl } from "../lib/products";
+//   - getProducts: 카테고리별 상품 조회
+import { resolveCategoryFromParam, buildImageUrl, getProducts } from "../lib/products";
 
 // 🔹 공통 API 함수
 import { api } from "../lib/api";
@@ -68,6 +69,12 @@ export default function CategoryPage() {
 
   // 혹시 undefined가 올 수 있으니 숫자로 한 번 더 안전하게 변환
   const categoryId = Number(rawCategoryId || 1);
+  
+  // 디버깅: URL 파라미터와 카테고리 매핑 확인
+  if (process.env.NODE_ENV === "development") {
+    console.log("[카테고리 페이지] URL 파라미터:", name);
+    console.log("[카테고리 페이지] 카테고리 정보:", { rawCategoryId, categoryId, categoryName });
+  }
 
   const [items, setItems] = useState([]);
   const [sortOpen, setSortOpen] = useState(false);
@@ -80,27 +87,47 @@ export default function CategoryPage() {
     setLoading(true);
 
     try {
-      // ✅ 핵심: 백엔드에서 카테고리 ID(1~4)로 바로 조회
-      //    GET /api/products/category/{categoryId}
-      // 카테고리 조회 요청
+      // ✅ 핵심: getProducts 함수 사용 (일관성 있는 API 호출)
+      //    GET /api/products?categoryId={categoryId}
+      
+      if (process.env.NODE_ENV === "development") {
+        console.log(`[카테고리 페이지] 카테고리 ID ${categoryId}로 상품 조회 시작`);
+      }
 
-      const rawList = await api(`/api/products/category/${categoryId}`);
+      // getProducts 함수 사용 (products.js에서 제공)
+      const rawList = await getProducts({ categoryId });
+
+      if (process.env.NODE_ENV === "development") {
+        console.log(`[카테고리 페이지] 상품 조회 성공:`, rawList?.length || 0, "개");
+      }
+
+      // rawList가 배열이 아니면 빈 배열로 처리
+      if (!Array.isArray(rawList)) {
+        console.warn("[카테고리 페이지] 응답이 배열이 아닙니다:", rawList);
+        setItems([]);
+        return;
+      }
 
       const mapped = rawList.map((raw) => ({
         id: raw.id,
         title: raw.title,
         price: raw.price,
-        seller: raw.sellerNickname,
+        seller: raw.sellerNickname || raw.seller?.nickname || "",
         likes: raw.likeCount ?? 0,
         liked: !!raw.isWishlisted,
         img: Array.isArray(raw.imageUrls)
           ? buildImageUrl(raw.imageUrls[0])
-          : "",
+          : buildImageUrl(raw.imageUrl || ""),
         status: normalizeStatus(raw.status), // ON_SALE / RESERVED / SOLD_OUT
       }));
 
       setItems(mapped);
+      
+      if (process.env.NODE_ENV === "development") {
+        console.log(`[카테고리 페이지] 상품 매핑 완료:`, mapped.length, "개");
+      }
     } catch (e) {
+      console.error("[카테고리 페이지] 상품 조회 실패:", e);
       // 백엔드 실패 시 빈 배열로 표시
       setItems([]);
     } finally {
