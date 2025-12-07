@@ -19,7 +19,8 @@ import loaderImg from "../image/loader.png";
 //   - resolveCategoryFromParam: URL 파라미터 → { code, id, label }
 //   - buildImageUrl: /uploads/... → 절대 URL
 //   - getProducts: 카테고리별 상품 조회
-import { resolveCategoryFromParam, buildImageUrl, getProducts } from "../lib/products";
+//   - getCategories: 백엔드 카테고리 목록 가져오기
+import { resolveCategoryFromParam, buildImageUrl, getProducts, getCategories } from "../lib/products";
 
 // 🔹 공통 API 함수
 import { api } from "../lib/api";
@@ -81,21 +82,80 @@ export default function CategoryPage() {
   const [sortType, setSortType] = useState("인기순");
   const [loading, setLoading] = useState(true);
   const [wishList, setWishList] = useState([]); // 찜 목록
+  const [backendCategoryId, setBackendCategoryId] = useState(null); // 백엔드 실제 카테고리 ID
+
+  // 백엔드 카테고리 이름 -> 프론트 코드 매핑
+  const BACKEND_CATEGORY_MAP = {
+    "의류": "clothes",
+    "도서": "books",
+    "도서 / 문구": "books",
+    "전자제품": "appliances",
+    "가전 / 주방": "appliances",
+    "가구": "helper",
+    "도우미 / 기타": "helper",
+  };
+
+  // 백엔드에서 카테고리 목록을 가져와서 실제 ID 찾기
+  useEffect(() => {
+    const fetchBackendCategoryId = async () => {
+      try {
+        const backendCategories = await getCategories();
+        
+        // 프론트엔드 카테고리 코드에 해당하는 백엔드 카테고리 찾기
+        const frontendCode = resolveCategoryFromParam(name).code;
+        
+        // 백엔드 카테고리 목록에서 매칭되는 카테고리 찾기
+        const matchedCategory = backendCategories.find((cat) => {
+          const backendName = cat.name || "";
+          const mappedCode = BACKEND_CATEGORY_MAP[backendName];
+          return mappedCode === frontendCode;
+        });
+        
+        if (matchedCategory && matchedCategory.id) {
+          setBackendCategoryId(matchedCategory.id);
+          if (process.env.NODE_ENV === "development") {
+            console.log(`[카테고리 페이지] 백엔드 카테고리 ID 찾음:`, {
+              frontendCode,
+              backendName: matchedCategory.name,
+              backendId: matchedCategory.id,
+            });
+          }
+        } else {
+          // 매칭 실패 시 하드코딩된 ID 사용 (fallback)
+          setBackendCategoryId(categoryId);
+          if (process.env.NODE_ENV === "development") {
+            console.warn(`[카테고리 페이지] 백엔드 카테고리 매칭 실패, 하드코딩된 ID 사용:`, categoryId);
+          }
+        }
+      } catch (e) {
+        console.error("[카테고리 페이지] 백엔드 카테고리 목록 조회 실패:", e);
+        // 실패 시 하드코딩된 ID 사용 (fallback)
+        setBackendCategoryId(categoryId);
+      }
+    };
+    
+    fetchBackendCategoryId();
+  }, [name, categoryId]);
 
   /** 🔥 카테고리별 상품 조회 (백엔드 + mock fallback) */
   const load = useCallback(async () => {
+    if (backendCategoryId === null) {
+      // 백엔드 카테고리 ID를 아직 찾지 못한 경우 대기
+      return;
+    }
+
     setLoading(true);
 
     try {
-      // ✅ 핵심: getProducts 함수 사용 (일관성 있는 API 호출)
-      //    GET /api/products?categoryId={categoryId}
+      // ✅ 핵심: 백엔드 실제 카테고리 ID 사용
+      //    GET /api/products?categoryId={backendCategoryId}
       
       if (process.env.NODE_ENV === "development") {
-        console.log(`[카테고리 페이지] 카테고리 ID ${categoryId}로 상품 조회 시작`);
+        console.log(`[카테고리 페이지] 백엔드 카테고리 ID ${backendCategoryId}로 상품 조회 시작`);
       }
 
       // getProducts 함수 사용 (products.js에서 제공)
-      const rawList = await getProducts({ categoryId });
+      const rawList = await getProducts({ categoryId: backendCategoryId });
 
       if (process.env.NODE_ENV === "development") {
         console.log(`[카테고리 페이지] 상품 조회 성공:`, rawList?.length || 0, "개");
@@ -133,7 +193,7 @@ export default function CategoryPage() {
     } finally {
       setLoading(false);
     }
-  }, [categoryId]);
+  }, [backendCategoryId]);
 
   // 찜 목록 로드
   useEffect(() => {
