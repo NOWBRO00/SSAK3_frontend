@@ -62,6 +62,39 @@ export function getCategoryLabelByCode(code) {
 }
 
 /**
+ * 백엔드 카테고리 이름을 프론트엔드 표시 이름으로 변환
+ * - "도서" -> "도서 / 문구"
+ * - "전자제품" -> "가전 / 주방"
+ * - "가구" -> "도우미 / 기타"
+ * - "의류" -> "의류"
+ * 
+ * @param {string} backendCategoryName - 백엔드에서 받은 카테고리 이름
+ * @returns {string} 프론트엔드 표시 이름
+ */
+export function formatCategoryName(backendCategoryName) {
+  if (!backendCategoryName) return "";
+  
+  // 백엔드 카테고리 이름 -> 프론트 코드 매핑
+  const BACKEND_CATEGORY_MAP = {
+    "의류": "clothes",
+    "도서": "books",
+    "도서 / 문구": "books",
+    "전자제품": "appliances",
+    "가전 / 주방": "appliances",
+    "가구": "helper",
+    "도우미 / 기타": "helper",
+  };
+  
+  const code = BACKEND_CATEGORY_MAP[backendCategoryName];
+  if (code && CATEGORY_INFO[code]) {
+    return CATEGORY_INFO[code].label;
+  }
+  
+  // 매핑되지 않은 경우 원본 반환
+  return backendCategoryName;
+}
+
+/**
  * 상품 단건 조회
  */
 export const getProduct = (id) => api(`/api/products/${id}`);

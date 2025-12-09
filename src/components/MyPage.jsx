@@ -25,7 +25,7 @@ import stickerSoldout from "../image/status-soldout.png";
 
 // 🔹 API BASE + 이미지 URL 유틸 (카테고리/상품에서 쓰는 것과 동일하게)
 import { BASE_URL } from "../lib/api";
-import { buildImageUrl } from "../lib/products";
+import { buildImageUrl, formatCategoryName } from "../lib/products";
 // ✅ 공통 인증 유틸리티 사용
 import { getUserId, getUserProfile } from "../utils/auth";
 
@@ -271,7 +271,7 @@ export default function MyPage() {
             title: title,
             price: price,
             img: buildImageUrl(imageUrl),
-            category: categoryName,
+            category: formatCategoryName(categoryName), // 필터 검색과 동일한 표시 이름
             status: product.status || w.status || "ON_SALE",
             wished: true,
           };
@@ -332,7 +332,7 @@ export default function MyPage() {
             title: raw.title || "",
             price: raw.price != null ? Number(raw.price) : 0,
             img: buildImageUrl(raw.imageUrls?.[0] || ""),
-            category: raw.categoryName || raw.category?.name || "",
+            category: formatCategoryName(raw.categoryName || raw.category?.name || ""), // 필터 검색과 동일한 표시 이름
             status: raw.status || "ON_SALE",
             wished: !!raw.isWishlisted,
           }));
@@ -363,7 +363,7 @@ export default function MyPage() {
             title: raw.title || "",
             price: raw.price != null ? Number(raw.price) : 0,
             img: buildImageUrl(raw.imageUrls?.[0] || ""),
-            category: raw.categoryName || raw.category?.name || "",
+            category: formatCategoryName(raw.categoryName || raw.category?.name || ""), // 필터 검색과 동일한 표시 이름
             status: raw.status || "ON_SALE",
             wished: !!raw.isWishlisted,
           }));

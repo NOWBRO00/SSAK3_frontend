@@ -28,7 +28,7 @@ import { api } from "../lib/api";
 import { getUserId } from "../utils/auth";
 
 // ✅ 이미지 URL 빌드 함수
-import { buildImageUrl } from "../lib/products";
+import { buildImageUrl, formatCategoryName } from "../lib/products";
 
 export default function SearchPage() {
   const navigate = useNavigate();
@@ -133,7 +133,7 @@ export default function SearchPage() {
           title: raw.title,
           price: raw.price,
           status: raw.status || "ON_SALE", // ON_SALE / RESERVED / SOLD_OUT
-          category: raw.categoryName || "",
+          category: formatCategoryName(raw.categoryName || raw.category?.name || ""), // 필터 검색과 동일한 표시 이름
           seller: raw.sellerNickname || "닉네임",
           liked: !!raw.isWishlisted,
           likes: raw.likeCount ?? 0,

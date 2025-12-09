@@ -25,7 +25,7 @@ import stickerSoldout from "../image/status-soldout.png";
 import BottomNav from "./BottomNav";
 
 // 🔹 공통 유틸
-import { buildImageUrl, getCategories, CATEGORY_INFO } from "../lib/products";
+import { buildImageUrl, getCategories, CATEGORY_INFO, formatCategoryName } from "../lib/products";
 import { api } from "../lib/api";
 
 // Mock 데이터 제거됨
@@ -141,7 +141,7 @@ export default function MainPage() {
 
       const mapped = slice.map((raw) => ({
         id: raw.id,
-        category: raw.categoryName ?? "", // "의류", "도서/문구", ...
+        category: formatCategoryName(raw.categoryName || raw.category?.name || ""), // 필터 검색과 동일한 표시 이름
         title: raw.title,
         price: raw.price,
         liked: !!raw.isWishlisted,
@@ -197,7 +197,7 @@ export default function MainPage() {
         
         return {
           id: productId,
-          category: categoryName,
+          category: formatCategoryName(categoryName), // 필터 검색과 동일한 표시 이름
           title: title,
           price: price,
           liked: true,

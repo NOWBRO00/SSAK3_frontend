@@ -110,7 +110,7 @@ export default function ProductDetailPage() {
         description: raw.description,
         price: raw.price,
         status: raw.status, // ON_SALE | RESERVED | SOLD_OUT
-        category: { name: raw.categoryName || "기타" },
+        category: { name: formatCategoryName(raw.categoryName || "기타") }, // 필터 검색과 동일한 표시 이름
         images,
         seller: {
           id: sellerId, // 백엔드 내부 사용자 ID
