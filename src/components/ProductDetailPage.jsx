@@ -27,6 +27,8 @@ import searchIcon from "../image/icon-search.png";
 import { BASE_URL, fetchWithAuth } from "../lib/api";
 // ✅ 공통 인증 유틸리티 사용
 import { getUserId } from "../utils/auth";
+// ✅ 상품/카테고리 유틸리티
+import { buildImageUrl, formatCategoryName } from "../lib/products";
 
 // Mock 데이터 제거됨
 
