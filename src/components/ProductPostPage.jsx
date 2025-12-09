@@ -9,32 +9,31 @@ import BottomNav from "./BottomNav";
 import { BASE_URL } from "../lib/api";
 // ✅ 공통 인증 유틸리티 사용
 import { getUserId as getSellerId } from "../utils/auth";
+// ✅ 필터 검색과 동일한 카테고리 정보 사용
+import { CATEGORY_INFO } from "../lib/products";
 
 // ✅ 실제로 사용할 API_BASE
 const API_BASE = BASE_URL;
 
 // 백엔드 categoryName -> 프론트 코드 매핑 (수정 모드에서 사용)
-// 주의: 백엔드 실제 카테고리 이름을 사용해야 함
-// 로그에서 확인된 백엔드 카테고리: 의류(1), 전자제품(2), 가구(3), 도서(4), 스포츠(5)
+// 필터 검색과 동일한 매핑 사용
 const CATEGORY_CODE_MAP = {
   "의류": "clothes",
-  "도서": "books",  // 백엔드 실제 이름
-  "전자제품": "appliances",  // 백엔드 실제 이름
-  "가구": "helper",  // 백엔드 실제 이름
-  // 호환성을 위한 별칭
+  "도서": "books",
   "도서 / 문구": "books",
+  "전자제품": "appliances",
   "가전 / 주방": "appliances",
+  "가구": "helper",
   "도우미 / 기타": "helper",
 };
 
-// 프론트 코드 -> 백엔드 categoryName 매핑 (등록 모드에서 사용)
-// 백엔드에서 동적으로 가져온 카테고리 이름을 우선 사용
-// 하지만 백엔드 실제 이름으로 매핑해야 함
+// 프론트 코드 -> 필터 검색 표시 이름 매핑 (등록 모드에서 사용)
+// 필터 검색과 동일한 표시 이름 사용
 const CATEGORY_NAME_MAP = {
-  "clothes": "의류",
-  "books": "도서",  // 백엔드 실제 이름: "도서"
-  "appliances": "전자제품",  // 백엔드 실제 이름: "전자제품"
-  "helper": "가구",  // 백엔드 실제 이름: "가구"
+  "clothes": CATEGORY_INFO.clothes.label,  // "의류"
+  "books": CATEGORY_INFO.books.label,  // "도서 / 문구"
+  "appliances": CATEGORY_INFO.appliances.label,  // "가전 / 주방"
+  "helper": CATEGORY_INFO.helper.label,  // "도우미 / 기타"
 };
 
 export default function ProductPostPage() {
@@ -87,10 +86,12 @@ export default function ProductPostPage() {
               nameToCode[cat.name] = code;
               
               // 카테고리 옵션 추가 (프론트엔드 표시용)
+              // 필터 검색과 동일한 표시 이름 사용
+              const displayLabel = CATEGORY_NAME_MAP[code] || cat.name;
               options.push({
                 value: code,
-                label: CATEGORY_NAME_MAP[code] || cat.name, // 프론트엔드 표시 이름 또는 백엔드 이름
-                backendName: cat.name,
+                label: displayLabel, // 필터 검색과 동일한 표시 이름
+                backendName: cat.name, // 백엔드 실제 이름 (저장 시 사용)
                 backendId: cat.id,
               });
             }
@@ -256,28 +257,19 @@ export default function ProductPostPage() {
         const formData = new FormData();
 
         // ✅ 카테고리 코드(clothes, books 등) -> 백엔드 실제 이름 -> ID 찾기
-        // 먼저 CATEGORY_NAME_MAP으로 변환 시도
-        let categoryName = CATEGORY_NAME_MAP[category];
-        
-        // 백엔드에서 가져온 카테고리 목록에서 실제 이름 찾기
         // categoryNameToCode를 역으로 사용하여 백엔드 이름 찾기
-        if (!categoryName || !categoryMap[categoryName]) {
-          // 백엔드 카테고리 목록에서 프론트 코드와 일치하는 이름 찾기
-          const foundName = Object.keys(categoryNameToCode).find(
-            (name) => categoryNameToCode[name] === category
-          );
-          if (foundName) {
-            categoryName = foundName;
-          }
-        }
+        // 백엔드에서 가져온 카테고리 목록에서 프론트 코드와 일치하는 이름 찾기
+        const backendCategoryName = Object.keys(categoryNameToCode).find(
+          (name) => categoryNameToCode[name] === category
+        );
         
-        if (!categoryName) {
+        if (!backendCategoryName) {
           // 카테고리 이름 변환 실패
           alert("카테고리를 다시 선택해주세요.");
           return;
         }
 
-        const categoryId = categoryMap[categoryName];
+        const categoryId = categoryMap[backendCategoryName];
 
         if (!categoryId) {
           // 카테고리 ID 매핑 실패
@@ -508,7 +500,7 @@ export default function ProductPostPage() {
                       </option>
                     ))
                   ) : (
-                    // 백엔드에서 카테고리를 가져오지 못한 경우 기본 옵션 표시
+                    // 백엔드에서 카테고리를 가져오지 못한 경우 기본 옵션 표시 (필터 검색과 동일)
                     <>
                       <option value="clothes">의류</option>
                       <option value="books">도서 / 문구</option>
